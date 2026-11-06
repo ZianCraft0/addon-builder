@@ -13,79 +13,124 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-3 flex flex-col items-center justify-start font-sans">
-  <div class="w-full max-w-4xl bg-slate-800 rounded-2xl p-4 shadow-2xl border border-slate-700 space-y-4 my-auto">
+  <div class="w-full max-w-xl bg-slate-800/90 backdrop-blur rounded-2xl p-5 shadow-2xl border border-slate-700 space-y-5 my-auto">
     
-    <header class="flex items-center justify-between border-b border-slate-700 pb-3">
-      <div>
-        <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Zian Lang Studio</h1>
-        <p class="text-[10px] text-slate-400">Traductor Masivo de Localización (.lang) para Minecraft Bedrock</p>
+    <!-- ENCABEZADO DE PRESENTACIÓN -->
+    <header class="text-center space-y-1 border-b border-slate-700/60 pb-4">
+      <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Zian Lang Studio</h1>
+      <p class="text-xs text-slate-400">Traductor Masivo de Localización (.lang) para Minecraft Bedrock</p>
+      <div class="pt-2">
+        <span class="text-[10px] bg-slate-900 text-emerald-400 px-3 py-1 rounded-full border border-slate-700 font-mono shadow-inner">Namespace oficial: zclegacy</span>
       </div>
-      <span class="text-[10px] bg-slate-900 text-emerald-400 px-2.5 py-1 rounded-lg border border-slate-700 font-mono">Namespace: zclegacy</span>
     </header>
 
-    <!-- ÁREA DE CARGA Y ENTRADA DE TEXTO BASE -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div class="space-y-2">
+    <!-- TARJETAS DE NAVEGACIÓN / MENÚ PRINCIPAL -->
+    <div id="mainMenu" class="space-y-3">
+      <p class="text-xs font-semibold text-slate-300 px-1">Selecciona una herramienta para comenzar:</p>
+      
+      <button onclick="switchView('translator')" class="w-full bg-slate-900 hover:bg-slate-950 border border-slate-700 hover:border-emerald-500/60 p-4 rounded-xl text-left transition-all flex items-center justify-between group shadow-lg">
+        <div class="space-y-0.5">
+          <div class="text-sm font-bold text-emerald-400 group-hover:translate-x-1 transition-transform">🌐 Traductor Masivo .lang</div>
+          <p class="text-[11px] text-slate-400">Traduce automáticamente archivos de texto a todos los idiomas de Bedrock.</p>
+        </div>
+        <span class="text-slate-500 group-hover:text-emerald-400 text-lg transition-colors">›</span>
+      </button>
+
+      <button onclick="switchView('generator')" class="w-full bg-slate-900 hover:bg-slate-950 border border-slate-700 hover:border-emerald-500/60 p-4 rounded-xl text-left transition-all flex items-center justify-between group shadow-lg">
+        <div class="space-y-0.5">
+          <div class="text-sm font-bold text-emerald-400 group-hover:translate-x-1 transition-transform">⚙️ Generador Rápido de Llaves</div>
+          <p class="text-[11px] text-slate-400">Crea claves individuales en formato item/tile/entity con tu namespace.</p>
+        </div>
+        <span class="text-slate-500 group-hover:text-emerald-400 text-lg transition-colors">›</span>
+      </button>
+    </div>
+
+    <!-- MÓDULO 1: TRADUCTOR MASIVO (Oculto por defecto) -->
+    <div id="view-translator" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <button onclick="switchView('menu')" class="text-xs text-emerald-400 hover:underline flex items-center gap-1 font-semibold">
+          ← Volver al menú
+        </button>
+        <span class="text-[10px] text-slate-400 font-mono">Modo: Traducción Global</span>
+      </div>
+
+      <div class="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
         <div class="flex items-center justify-between">
-          <label class="text-xs font-semibold text-slate-300">1. Contenido / Archivo Base</label>
-          <label for="fileUpload" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-emerald-300 px-2 py-0.5 rounded cursor-pointer transition-all">
-            📁 Subir archivo .lang
+          <label class="text-xs font-semibold text-slate-300">1. Contenido / Archivo Base (.lang)</label>
+          <label for="fileUpload" class="text-[10px] bg-slate-700 hover:bg-slate-600 text-emerald-300 px-2.5 py-1 rounded-lg cursor-pointer transition-all shadow">
+            📁 Subir archivo
           </label>
           <input type="file" id="fileUpload" accept=".lang,.txt" class="hidden" onchange="handleFileUpload(event)">
         </div>
-        <textarea id="sourceContent" placeholder="item.zclegacy.espada_caos.name=Espada del Caos&#10;tile.zclegacy.bloque_sombras.name=Bloque de las Sombras&#10;entity.zclegacy.jefe_vacio.name=Jefe del Vacío" class="w-full h-56 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"></textarea>
+        <textarea id="sourceContent" placeholder="item.zclegacy.espada_caos.name=Espada del Caos&#10;tile.zclegacy.bloque_sombras.name=Bloque de las Sombras" class="w-full h-36 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"></textarea>
       </div>
 
-      <!-- CONFIGURACIÓN DE IDIOMAS DESTINO -->
-      <div class="space-y-2 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-semibold text-slate-300">2. Idiomas a Traducir</label>
-            <button onclick="toggleAllLanguages()" class="text-[10px] text-emerald-400 hover:underline">Seleccionar / Desmarcar Todos</button>
-          </div>
-          <div id="languageGrid" class="grid grid-cols-2 gap-1.5 bg-slate-950 p-2 rounded-xl border border-slate-800 h-44 overflow-y-auto text-[11px] font-mono">
-            <!-- Idiomas inyectados dinámicamente -->
-          </div>
+      <div class="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-xs font-semibold text-slate-300">2. Idiomas Destino</label>
+          <button onclick="toggleAllLanguages()" class="text-[10px] text-emerald-400 hover:underline">Marcar / Desmarcar Todos</button>
         </div>
+        <div id="languageGrid" class="grid grid-cols-2 gap-1.5 bg-slate-950 p-2.5 rounded-xl border border-slate-800 h-36 overflow-y-auto text-[11px] font-mono">
+          <!-- Inyectado por JS -->
+        </div>
+      </div>
 
-        <div class="space-y-1.5">
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] text-slate-400">Motor de Traducción:</span>
-            <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded">Lingva / LibreTranslate (Gratuito & Sin API Key)</span>
-          </div>
-          <button onclick="processBatchTranslation()" id="translateBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2">
-            <span>🌐 Traducir y Generar Pack Completo</span>
+      <button onclick="processBatchTranslation()" id="translateBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2">
+        <span>🌐 Traducir y Generar Pack (.ZIP)</span>
+      </button>
+
+      <!-- RESULTADOS -->
+      <div id="resultsContainer" class="hidden space-y-3 pt-3 border-t border-slate-700">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Archivos Traducidos</h2>
+          <button onclick="downloadAllZip()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold shadow transition-all">
+            📦 Descargar Pack (.ZIP)
           </button>
         </div>
+
+        <div class="flex gap-2">
+          <select id="languageSelector" onchange="displaySelectedTranslation()" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-200 flex-grow focus:outline-none focus:border-emerald-500">
+          </select>
+          <button onclick="copyCurrentOutput()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold">
+            Copiar
+          </button>
+        </div>
+
+        <textarea id="outputContent" readonly class="w-full h-32 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 resize-none leading-relaxed"></textarea>
+        <div id="statusLog" class="text-[10px] font-mono text-slate-400 space-y-0.5"></div>
       </div>
     </div>
 
-    <!-- RESULTADOS Y EXPORTACIÓN -->
-    <div id="resultsContainer" class="hidden space-y-3 pt-2 border-t border-slate-700">
+    <!-- MÓDULO 2: GENERADOR RÁPIDO DE LLAVES (Oculto por defecto) -->
+    <div id="view-generator" class="hidden space-y-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-xs font-bold text-emerald-400 uppercase tracking-wider"> Archivos Traducidos</h2>
-        <button onclick="downloadAllZip()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold shadow transition-all">
-          📦 Descargar Todos (.ZIP)
+        <button onclick="switchView('menu')" class="text-xs text-emerald-400 hover:underline flex items-center gap-1 font-semibold">
+          ← Volver al menú
         </button>
+        <span class="text-[10px] text-slate-400 font-mono">Modo: Generador ZClegacy</span>
       </div>
 
-      <div class="flex gap-2">
-        <select id="languageSelector" onchange="displaySelectedTranslation()" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-200 flex-grow focus:outline-none focus:border-emerald-500">
-        </select>
-        <button onclick="copyCurrentOutput()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold">
-          Copiar
-        </button>
+      <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
+        <textarea id="genInput" placeholder="Piedra del Caos&#10;Espada Oscura" class="w-full h-28 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+        <div class="grid grid-cols-2 gap-2">
+          <select id="genPrefix" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="item">Objeto (item.zclegacy...)</option>
+            <option value="tile">Bloque (tile.zclegacy...)</option>
+            <option value="entity">Entidad (entity.zclegacy...)</option>
+          </select>
+          <button onclick="generateLangKeys()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-lg text-xs shadow">Generar Llaves</button>
+        </div>
       </div>
 
-      <textarea id="outputContent" readonly class="w-full h-44 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 resize-none leading-relaxed"></textarea>
-      
-      <div id="statusLog" class="text-[10px] font-mono text-slate-400 space-y-0.5"></div>
+      <div id="genResultContainer" class="hidden space-y-2 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
+        <textarea id="genOutput" readonly class="w-full h-28 bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs font-mono text-emerald-400 resize-none leading-relaxed"></textarea>
+        <button onclick="copyGenOutput()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg font-semibold shadow">Copiar al Portapapeles</button>
+      </div>
     </div>
 
   </div>
 
   <script>
-    // LISTA OFICIAL DE IDIOMAS SOPORTADOS POR MINECRAFT BEDROCK
     const BEDROCK_LANGUAGES = [
       { code: 'en_US', name: 'English (US)', target: 'en' },
       { code: 'en_GB', name: 'English (UK)', target: 'en' },
@@ -114,7 +159,6 @@
 
     let translatedResults = {};
 
-    // INICIALIZAR CUADRÍCULA DE IDIOMAS
     window.onload = () => {
       const grid = document.getElementById('languageGrid');
       grid.innerHTML = BEDROCK_LANGUAGES.map(lang => `
@@ -124,6 +168,12 @@
         </label>
       `).join('');
     };
+
+    function switchView(view) {
+      document.getElementById('mainMenu').classList.toggle('hidden', view !== 'menu');
+      document.getElementById('view-translator').classList.toggle('hidden', view !== 'translator');
+      document.getElementById('view-generator').classList.toggle('hidden', view !== 'generator');
+    }
 
     function toggleAllLanguages() {
       const checkboxes = document.querySelectorAll('.lang-checkbox');
@@ -141,7 +191,6 @@
       reader.readAsText(file);
     }
 
-    // PROCESAMIENTO Y TRADUCCIÓN MASIVA
     async function processBatchTranslation() {
       const rawText = document.getElementById('sourceContent').value.trim();
       if (!rawText) {
@@ -184,7 +233,6 @@
           const key = parts[0].trim();
           const val = parts.slice(1).join('=').trim();
 
-          // Evitar traducir si el idioma destino es el mismo origen (si es español)
           if (targetLang === 'es') {
             translatedLines.push(`${key}=${val}`);
             continue;
@@ -194,14 +242,13 @@
             const translatedText = await translateString(val, targetLang);
             translatedLines.push(`${key}=${translatedText}`);
           } catch (e) {
-            translatedLines.push(`${key}=${val}`); // Fallback al texto original si falla la red
+            translatedLines.push(`${key}=${val}`);
           }
         }
 
         translatedResults[langCode] = translatedLines.join('\n');
       }
 
-      // Actualizar selector de resultados
       const selector = document.getElementById('languageSelector');
       selector.innerHTML = Object.keys(translatedResults).map(code => `<option value="${code}">${code}.lang</option>`).join('');
       
@@ -210,10 +257,9 @@
       
       btn.disabled = false;
       btn.classList.remove('opacity-50');
-      btn.innerHTML = '<span>🌐 Traducir y Generar Pack Completo</span>';
+      btn.innerHTML = '<span>🌐 Traducir y Generar Pack (.ZIP)</span>';
     }
 
-    // MOTOR DE TRADUCCIÓN MEDIANTE INSTANCIA PÚBLICA DE LINGVA / LIBRETRANSLATE
     async function translateString(text, targetLang) {
       const url = `https://lingva.ml/api/v1/es/${targetLang}/${encodeURIComponent(text)}`;
       const res = await fetch(url);
@@ -229,10 +275,9 @@
 
     function copyCurrentOutput() {
       navigator.clipboard.writeText(document.getElementById('outputContent').value);
-      alert('¡Contenido .lang copiado al portapapeles!');
+      alert('¡Contenido .lang copiado!');
     }
 
-    // EXPORTACIÓN ZIP DE TODOS LOS ARCHIVOS
     async function downloadAllZip() {
       if (Object.keys(translatedResults).length === 0) return;
       
@@ -248,6 +293,27 @@
       a.href = URL.createObjectURL(blob);
       a.download = "zian_texts_pack.zip";
       a.click();
+    }
+
+    function generateLangKeys() {
+      const raw = document.getElementById('genInput').value.trim();
+      const prefix = document.getElementById('genPrefix').value;
+      if (!raw) return;
+
+      const lines = raw.split('\n').filter(l => l.trim() !== '');
+      const result = lines.map(line => {
+        const cleanName = line.trim();
+        const keyID = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        return `${prefix}.zclegacy.${keyID}.name=${cleanName}`;
+      }).join('\n');
+
+      document.getElementById('genOutput').value = result;
+      document.getElementById('genResultContainer').classList.remove('hidden');
+    }
+
+    function copyGenOutput() {
+      navigator.clipboard.writeText(document.getElementById('genOutput').value);
+      alert('¡Llaves generadas copiadas!');
     }
   </script>
 </body>
