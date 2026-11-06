@@ -63,7 +63,7 @@
           </label>
           <input type="file" id="fileUpload" accept=".lang,.txt" class="hidden" onchange="handleFileUpload(event)">
         </div>
-        <textarea id="sourceContent" placeholder="item.zclegacy.espada_caos.name=Espada del Caos&#10;tile.zclegacy.bloque_sombras.name=Bloque de las Sombras" class="w-full h-36 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"></textarea>
+        <textarea id="sourceContent" placeholder="item.mi_addon.item_ejemplo.name=Nombre del Objeto&#10;tile.mi_addon.bloque_ejemplo.name=Nombre del Bloque" class="w-full h-36 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"></textarea>
       </div>
 
       <div class="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60">
@@ -114,7 +114,7 @@
       </div>
 
       <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
-        <textarea id="genInput" placeholder="Piedra del Caos&#10;Espada Oscura" class="w-full h-28 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+        <textarea id="genInput" placeholder="Objeto 1&#10;Objeto 2" class="w-full h-28 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
         <div class="grid grid-cols-2 gap-2">
           <select id="genPrefix" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
             <option value="item">Objeto (item.ns...)</option>
@@ -239,10 +239,8 @@
           let key = parts[0].trim();
           const val = parts.slice(1).join('=').trim();
 
-          // Si el usuario especificó un namespace opcional, intentamos reemplazar partes intermedias comunes o adaptarlo
           if (ns !== '') {
-            // Reemplaza nombres comunes de namespaces anteriores si aplica, o respeta la llave
-            key = key.replace(/\.(zclegacy|zian|my_addon)\./g, `.${ns}.`);
+            key = key.replace(/\.(zclegacy|mi_addon|custom)\./g, `.${ns}.`);
           }
 
           if (targetLang === 'es' && langCode.toLowerCase().startsWith('es')) {
