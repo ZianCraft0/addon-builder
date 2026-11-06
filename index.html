@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zian Codex - Add-on Copilot Pro</title>
+  <title>Zian Add-on Copilot</title>
+  <!-- Configuración PWA para pantalla completa -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#111827">
+  
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Librería JSZip para descomprimir y analizar add-ons en el navegador -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 flex flex-col items-center">
@@ -15,13 +19,12 @@
       <p class="text-xs text-gray-400 mt-1">Auditor y generador privado de Bedrock</p>
     </header>
 
-    <!-- Pestañas de navegación -->
     <div class="flex border-b border-gray-700 pb-2 space-x-2">
       <button onclick="switchTab('audit')" id="btn-audit" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition-all">Auditar Add-on</button>
       <button onclick="switchTab('manifest')" id="btn-manifest" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-gray-700 text-gray-300 transition-all">Crear Manifiesto</button>
     </div>
 
-    <!-- SECCIÓN 1: AUDITOR DE ADD-ONS -->
+    <!-- AUDITOR -->
     <div id="tab-audit" class="space-y-4">
       <div class="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-emerald-500 transition-all cursor-pointer relative">
         <input type="file" id="addonFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
@@ -38,7 +41,7 @@
       </div>
     </div>
 
-    <!-- SECCIÓN 2: GENERADOR DE MANIFIESTOS -->
+    <!-- MANIFIESTO -->
     <div id="tab-manifest" class="hidden space-y-4">
       <div>
         <label class="block text-xs font-medium mb-1 text-gray-300">Nombre del Add-on</label>
@@ -95,7 +98,6 @@
         let logs = [];
         let hasManifest = false;
 
-        // Recorrer los archivos dentro del zip
         for (const [filename, zipEntry] of Object.entries(zipContent.files)) {
           if (zipEntry.dir) continue;
 
