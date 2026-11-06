@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bedrock Lang Studio - ZianCraft0</title>
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b1020">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(900px 500px at 15% -10%, rgba(16,185,129,.12), transparent 60%),
+        radial-gradient(700px 400px at 100% 0%, rgba(56,189,248,.08), transparent 55%),
+        #0b1020;
+      background-attachment: fixed;
+    }
+    .card { background: rgba(15,23,42,.72); border: 1px solid rgba(148,163,184,.14); backdrop-filter: blur(8px); }
+    .field { background: #070b16; border: 1px solid rgba(148,163,184,.18); transition: border-color .15s, box-shadow .15s; }
+    .field:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+    .scroll::-webkit-scrollbar { width: 8px; }
+    .scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 8px; }
+    .tab-active { background: #10b981; color: #04130d; box-shadow: 0 4px 14px rgba(16,185,129,.35); }
+    .tab-idle { color: #94a3b8; }
+    .tab-idle:hover { color: #e2e8f0; }
+    .step-dot { width: 22px; height: 22px; border-radius: 9999px; background: rgba(16,185,129,.15); color: #34d399; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .lang-item:has(input:checked) { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.45); }
+    #toast { transition: opacity .25s, transform .25s; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen font-sans antialiased">
+
+  <div class="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-5">
+
+    <!-- ENCABEZADO -->
+    <header class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-slate-950 font-extrabold shadow-lg shadow-emerald-500/20">B</div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight leading-tight">Bedrock Lang Studio</h1>
+          <p class="text-xs text-slate-400">Localización de archivos <span class="font-mono">.lang</span> · por <span class="text-emerald-300 font-medium">ZianCraft0</span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="globalNamespace" class="text-[11px] uppercase tracking-wider text-slate-500 font-medium hidden sm:block">Namespace</label>
+        <input type="text" id="globalNamespace" value="" class="field text-emerald-300 text-xs px-3 py-2 rounded-lg font-mono w-32 text-center" placeholder="ej. zclegacy">
+      </div>
+    </header>
+
+    <!-- PESTAÑAS -->
+    <nav class="card rounded-xl p-1 grid grid-cols-2 gap-1">
+      <button id="tab-translator" onclick="switchView('translator')" class="tab-active rounded-lg py-2.5 text-sm font-semibold transition-all">🌐 Traductor masivo</button>
+      <button id="tab-generator" onclick="switchView('generator')" class="tab-idle rounded-lg py-2.5 text-sm font-semibold transition-all">⚙️ Generador de llaves</button>
+    </nav>
+
+    <!-- MÓDULO 1: TRADUCTOR -->
+    <main id="view-translator" class="space-y-4">
+
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold flex items-center gap-2"><span class="step-dot">1</span> Archivo base</h2>
+          <label for="fileUpload" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg cursor-pointer transition-colors font-medium">
+            Subir archivo
+          </label>
+          <input type="file" id="fileUpload" accept=".lang,.txt" class="hidden" onchange="handleFileUpload(event)">
+        </div>
+        <textarea id="sourceContent" placeholder="item.mi_addon.item_ejemplo.name=Nombre del Objeto&#10;tile.mi_addon.bloque_ejemplo.name=Nombre del Bloque" class="field scroll w-full h-40 rounded-xl p-3 text-xs font-mono text-slate-200 resize-none leading-relaxed placeholder:text-slate-600"></textarea>
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-[11px] text-slate-500">Una llave por línea con formato <span class="font-mono text-slate-400">clave=valor</span>.</p>
+          <div class="flex items-center gap-2 shrink-0">
+            <label for="sourceLang" class="text-[11px] text-slate-500">Idioma base</label>
+            <select id="sourceLang" class="field rounded-lg px-2 py-1 text-xs text-slate-200">
+              <option value="es">Español</option>
+              <option value="en">English</option>
+              <option value="pt">Português</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold flex items-center gap-2"><span class="step-dot">2</span> Idiomas de destino</h2>
+          <div class="flex items-center gap-3">
+            <span id="langCount" class="text-[11px] font-mono text-slate-400"></span>
+            <button onclick="toggleAllLanguages()" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium">Marcar / desmarcar todos</button>
+          </div>
+        </div>
+        <div id="languageGrid" class="scroll grid grid-cols-2 sm:grid-cols-3 gap-1.5 h-44 overflow-y-auto pr-1 text-[11px] font-mono"></div>
+      </section>
+
+      <button onclick="processBatchTranslation()" id="translateBtn" class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition-all">
+        Traducir y generar pack
+      </button>
+
+      <!-- PROGRESO -->
+      <div id="progressWrap" class="hidden space-y-1.5">
+        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full w-0 bg-emerald-500 rounded-full transition-all duration-300"></div>
+        </div>
+        <div id="statusLog" class="text-[11px] font-mono text-slate-400"></div>
+      </div>
+
+      <!-- RESULTADOS -->
+      <section id="resultsContainer" class="hidden card rounded-2xl p-4 sm:p-5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold flex items-center gap-2"><span class="step-dot">3</span> Resultado</h2>
+          <button onclick="downloadAllZip()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs px-3.5 py-2 rounded-lg font-bold shadow transition-colors">
+            Descargar .ZIP
+          </button>
+        </div>
+
+        <div class="flex gap-2">
+          <select id="languageSelector" onchange="displaySelectedTranslation()" class="field rounded-lg px-3 py-2 text-xs font-mono text-slate-200 flex-grow"></select>
+          <button onclick="copyCurrentOutput()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-semibold transition-colors">
+            Copiar
+          </button>
+        </div>
+
+        <textarea id="outputContent" readonly class="field scroll w-full h-40 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none leading-relaxed"></textarea>
+      </section>
+    </main>
+
+    <!-- MÓDULO 2: GENERADOR -->
+    <main id="view-generator" class="hidden space-y-4">
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold">Nombres a convertir</h2>
+        <textarea id="genInput" placeholder="Objeto 1&#10;Objeto 2" class="field scroll w-full h-32 rounded-xl p-3 text-xs font-mono text-slate-200 resize-none placeholder:text-slate-600"></textarea>
+        <div class="grid grid-cols-2 gap-2">
+          <select id="genPrefix" class="field rounded-lg px-3 py-2.5 text-xs text-slate-200">
+            <option value="item">Objeto (item.ns...)</option>
+            <option value="tile">Bloque (tile.ns...)</option>
+            <option value="entity">Entidad (entity.ns...)</option>
+          </select>
+          <button onclick="generateLangKeys()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs shadow transition-colors">Generar llaves</button>
+        </div>
+      </section>
+
+      <section id="genResultContainer" class="hidden card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold">Llaves generadas</h2>
+        <textarea id="genOutput" readonly class="field scroll w-full h-32 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none leading-relaxed"></textarea>
+        <button onclick="copyGenOutput()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-2.5 rounded-lg font-semibold transition-colors">Copiar al portapapeles</button>
+      </section>
+    </main>
+
+    <footer class="text-center text-[11px] text-slate-600 pt-2">Bedrock Lang Studio · ZianCraft0</footer>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 translate-y-3 opacity-0 pointer-events-none bg-slate-100 text-slate-900 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl"></div>
+
+  <script>
+    const BEDROCK_LANGUAGES = [
+      { code: 'en_US', name: 'English (US)', target: 'en' },
+      { code: 'en_GB', name: 'English (UK)', target: 'en' },
+      { code: 'es_ES', name: 'Español (España)', target: 'es' },
+      { code: 'es_MX', name: 'Español (México)', target: 'es' },
+      { code: 'pt_BR', name: 'Português (Brasil)', target: 'pt' },
+      { code: 'pt_PT', name: 'Português (Portugal)', target: 'pt' },
+      { code: 'fr_FR', name: 'Français (France)', target: 'fr' },
+      { code: 'fr_CA', name: 'Français (Canada)', target: 'fr' },
+      { code: 'de_DE', name: 'Deutsch (Deutschland)', target: 'de' },
+      { code: 'it_IT', name: 'Italiano (Italia)', target: 'it' },
+      { code: 'ru_RU', name: 'Русский (Россия)', target: 'ru' },
+      { code: 'ja_JP', name: '日本語 (日本)', target: 'ja' },
+      { code: 'zh_CN', name: '简体中文 (中国)', target: 'zh' },
+      { code: 'zh_TW', name: '繁體中文 (台灣)', target: 'zh-TW' },
+      { code: 'ko_KR', name: '한국어 (대한민국)', target: 'ko' },
+      { code: 'pl_PL', name: 'Polski (Polska)', target: 'pl' },
+      { code: 'nl_NL', name: 'Nederlands (Nederland)', target: 'nl' },
+      { code: 'tr_TR', name: 'Türkçe (Türkiye)', target: 'tr' },
+      { code: 'uk_UA', name: 'Українська (Україна)', target: 'uk' },
+      { code: 'cs_CZ', name: 'Čeština (Česko)', target: 'cs' },
+      { code: 'hu_HU', name: 'Magyar (Magyarország)', target: 'hu' },
+      { code: 'id_ID', name: 'Bahasa Indonesia', target: 'id' },
+      { code: 'sv_SE', name: 'Svenska (Sverige)', target: 'sv' }
+    ];
+
+    let translatedResults = {};
+    let toastTimer = null;
+    const cache = new Map();
+    let quotaHit = false;
+
+    // Motor local: Translator API de Chrome (escritorio, sin límites)
+    const localTranslators = new Map();
+    const LOCAL_CODE = { 'zh-TW': 'zh-Hant' };
+
+    async function getLocalTranslator(src, target) {
+      const k = `${src}|${target}`;
+      if (localTranslators.has(k)) return localTranslators.get(k);
+      let tr = null;
+      try {
+        if ('Translator' in self) {
+          const opts = { sourceLanguage: src, targetLanguage: LOCAL_CODE[target] || target };
+          const av = await Translator.availability(opts);
+          if (av !== 'unavailable') tr = await Translator.create(opts);
+        }
+      } catch (e) { tr = null; }
+      localTranslators.set(k, tr);
+      return tr;
+    }
+
+    // Códigos de formato que no se deben traducir: §a, %s, %1$s, %%, \n, {0}
+    const FORMAT_RE = /§.|%(?:\d+\$)?[sdif]|%%|\\n|\{\d+\}/g;
+
+    function protect(text) {
+      const tokens = [];
+      const out = text.replace(FORMAT_RE, m => { tokens.push(m); return `ZQ${tokens.length - 1}Z`; });
+      return { out, tokens };
+    }
+
+    function restore(text, tokens) {
+      return text.replace(/ZQ\s*(\d+)\s*Z/gi, (m, i) => tokens[+i] !== undefined ? tokens[+i] : m);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('opacity-0', 'translate-y-3');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.add('opacity-0', 'translate-y-3'), 2200);
+    }
+
+    function updateLangCount() {
+      const total = document.querySelectorAll('.lang-checkbox').length;
+      const sel = document.querySelectorAll('.lang-checkbox:checked').length;
+      document.getElementById('langCount').textContent = `${sel}/${total}`;
+    }
+
+    window.onload = () => {
+      const grid = document.getElementById('languageGrid');
+      grid.innerHTML = BEDROCK_LANGUAGES.map(lang => `
+        <label class="lang-item flex items-center gap-2 cursor-pointer px-2.5 py-2 rounded-lg border border-slate-800 hover:border-slate-600 transition-colors">
+          <input type="checkbox" value="${lang.code}" data-target="${lang.target}" class="lang-checkbox accent-emerald-500 rounded" ${lang.code === 'en_US' || lang.code === 'pt_BR' ? 'checked' : ''}>
+          <span class="text-slate-300 truncate">${lang.code} <span class="text-slate-500 text-[9px]">${lang.name.split(' ')[0]}</span></span>
+        </label>
+      `).join('');
+      grid.addEventListener('change', updateLangCount);
+      updateLangCount();
+    };
+
+    function switchView(view) {
+      document.getElementById('view-translator').classList.toggle('hidden', view !== 'translator');
+      document.getElementById('view-generator').classList.toggle('hidden', view !== 'generator');
+      const tabT = document.getElementById('tab-translator');
+      const tabG = document.getElementById('tab-generator');
+      tabT.className = (view === 'translator' ? 'tab-active' : 'tab-idle') + ' rounded-lg py-2.5 text-sm font-semibold transition-all';
+      tabG.className = (view === 'generator' ? 'tab-active' : 'tab-idle') + ' rounded-lg py-2.5 text-sm font-semibold transition-all';
+    }
+
+    function toggleAllLanguages() {
+      const checkboxes = document.querySelectorAll('.lang-checkbox');
+      const allChecked = Array.from(checkboxes).every(c => c.checked);
+      checkboxes.forEach(c => c.checked = !allChecked);
+      updateLangCount();
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('sourceContent').value = e.target.result;
+        showToast('Archivo cargado');
+      };
+      reader.readAsText(file);
+    }
+
+    async function processBatchTranslation() {
+      const rawText = document.getElementById('sourceContent').value.trim();
+      if (!rawText) {
+        showToast('Ingresa o sube un texto .lang base');
+        return;
+      }
+
+      const selectedCheckboxes = document.querySelectorAll('.lang-checkbox:checked');
+      if (selectedCheckboxes.length === 0) {
+        showToast('Selecciona al menos un idioma');
+        return;
+      }
+
+      const ns = document.getElementById('globalNamespace').value.trim();
+      const btn = document.getElementById('translateBtn');
+      const log = document.getElementById('statusLog');
+      const progressWrap = document.getElementById('progressWrap');
+      const bar = document.getElementById('progressBar');
+
+      document.getElementById('resultsContainer').classList.add('hidden');
+      progressWrap.classList.remove('hidden');
+      bar.style.width = '0%';
+
+      btn.disabled = true;
+      btn.textContent = 'Traduciendo… por favor espera';
+      log.textContent = 'Iniciando motor de traducción…';
+
+      translatedResults = {};
+      const lines = rawText.split('\n');
+      const total = selectedCheckboxes.length;
+      let done = 0;
+      let failed = 0;
+      let translatedCount = 0;
+      quotaHit = false;
+      let localCount = 0;
+      let remoteCount = 0;
+      const srcLang = document.getElementById('sourceLang').value;
+
+      // Prepara los traductores locales de una vez (la primera vez Chrome descarga los modelos)
+      const targets = [...new Set(Array.from(selectedCheckboxes).map(c => c.getAttribute('data-target')))].filter(t => t !== srcLang);
+      if ('Translator' in self) {
+        log.textContent = 'Preparando traductor local de Chrome (la primera vez descarga modelos)…';
+        await Promise.all(targets.map(t => getLocalTranslator(srcLang, t)));
+      }
+
+      // Detecta el namespace de origen (el más frecuente en llaves item/tile/entity)
+      const nsCounts = {};
+      for (const l of lines) {
+        const m = l.trim().match(/^(?:item|tile|entity)\.([^.=]+)\./);
+        if (m) nsCounts[m[1]] = (nsCounts[m[1]] || 0) + 1;
+      }
+      const srcNs = Object.keys(nsCounts).sort((a, b) => nsCounts[b] - nsCounts[a])[0] || '';
+
+      for (const cb of selectedCheckboxes) {
+        const langCode = cb.value;
+        const targetLang = cb.getAttribute('data-target');
+        log.textContent = `Procesando ${langCode} (${done + 1}/${total})…`;
+
+        let translatedLines = [];
+        for (let line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) {
+            translatedLines.push(line);
+            continue;
+          }
+
+          const eq = trimmed.indexOf('=');
+          let key = trimmed.slice(0, eq).trim();
+          const rest = trimmed.slice(eq + 1);
+          // Separa el comentario de fin de línea (clave=valor<tab>## comentario)
+          const cm = rest.match(/^(.*?)(\s*\t+\s*##.*)?$/);
+          const val = cm[1].trim();
+          const comment = cm[2] || '';
+
+          if (ns !== '' && srcNs !== '') {
+            const kp = key.split('.');
+            if (kp.length > 2 && kp[1] === srcNs) { kp[1] = ns; key = kp.join('.'); }
+          }
+
+          if (targetLang === srcLang) {
+            translatedLines.push(`${key}=${val}${comment}`);
+            continue;
+          }
+
+          const r = await translateString(val, srcLang, targetLang);
+          if (r.ok) translatedCount++; else failed++;
+          if (r.ok && r.engine === 'local') localCount++;
+          if (r.ok && r.engine === 'remote') remoteCount++;
+          translatedLines.push(`${key}=${r.text}${comment}`);
+          if (r.fresh) await new Promise(res => setTimeout(res, 200));
+        }
+
+        translatedResults[langCode] = translatedLines.join('\n');
+        done++;
+        bar.style.width = `${Math.round((done / total) * 100)}%`;
+      }
+
+      const selector = document.getElementById('languageSelector');
+      selector.innerHTML = Object.keys(translatedResults).map(code => `<option value="${code}">${code}.lang</option>`).join('');
+
+      displaySelectedTranslation();
+
+      document.getElementById('resultsContainer').classList.remove('hidden');
+      if (quotaHit) {
+        log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Se alcanzó el límite diario de MyMemory. ${failed} línea(s) quedaron sin traducir (con el texto original). Intenta de nuevo más tarde.</span>`;
+      } else if (failed > 0) {
+        log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Listo, pero ${failed} línea(s) no se pudieron traducir y quedaron con el texto original.</span>`;
+      } else {
+        log.innerHTML = '<span class="text-emerald-400 font-semibold">✔ Traducción completada. Ya puedes descargar tu pack (.ZIP).</span>';
+      }
+
+      const engineInfo = ('Translator' in self)
+        ? `Motor: Chrome local (${localCount} líneas)${remoteCount ? ` + MyMemory (${remoteCount} líneas)` : ''}`
+        : `Motor: MyMemory (${remoteCount} líneas). Chrome local no está disponible en este navegador.`;
+      log.innerHTML += `<br><span class="text-slate-500">${engineInfo}</span>`;
+
+      btn.disabled = false;
+      btn.textContent = 'Volver a traducir y generar pack';
+    }
+
+    async function translateString(text, srcLang, targetLang) {
+      const cacheKey = `${srcLang}|${targetLang}|${text}`;
+      if (cache.has(cacheKey)) return { text: cache.get(cacheKey), ok: true, fresh: false, engine: 'cache' };
+
+      const { out, tokens } = protect(text);
+      // Si solo hay códigos de formato, no hay nada que traducir
+      if (!out.replace(/ZQ\d+Z/g, '').trim()) return { text, ok: true, fresh: false, engine: 'cache' };
+
+      // 1) Motor local de Chrome
+      const local = await getLocalTranslator(srcLang, targetLang);
+      if (local) {
+        try {
+          const lt = await local.translate(out);
+          const lfinal = restore(lt, tokens);
+          if (!/ZQ\s*\d+\s*Z/i.test(lfinal)) {
+            cache.set(cacheKey, lfinal);
+            return { text: lfinal, ok: true, fresh: false, engine: 'local' };
+          }
+        } catch (e) { /* cae a MyMemory */ }
+      }
+
+      // 2) Respaldo: MyMemory
+      if (quotaHit) return { text, ok: false, fresh: false };
+
+      try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(out)}&langpair=${srcLang}|${targetLang}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Error en la red');
+        const data = await res.json();
+
+        const t = data && data.responseData && data.responseData.translatedText;
+        if (!t) return { text, ok: false, fresh: true };
+
+        if (t.includes('MYMEMORY WARNING') || data.quotaFinished || data.responseStatus == 429) {
+          quotaHit = true;
+          return { text, ok: false, fresh: true };
+        }
+
+        const final = restore(t, tokens);
+        // Si el traductor dañó un marcador, es más seguro dejar el texto original
+        if (/ZQ\s*\d+\s*Z/i.test(final)) return { text, ok: false, fresh: true };
+
+        cache.set(cacheKey, final);
+        return { text: final, ok: true, fresh: true, engine: 'remote' };
+      } catch (e) {
+        return { text, ok: false, fresh: true };
+      }
+    }
+
+    function displaySelectedTranslation() {
+      const selected = document.getElementById('languageSelector').value;
+      document.getElementById('outputContent').value = translatedResults[selected] || '';
+    }
+
+    function copyCurrentOutput() {
+      navigator.clipboard.writeText(document.getElementById('outputContent').value);
+      showToast('Contenido .lang copiado');
+    }
+
+    async function downloadAllZip() {
+      if (Object.keys(translatedResults).length === 0) return;
+
+      const zip = new JSZip();
+      const textsFolder = zip.folder("texts");
+
+      for (const [code, content] of Object.entries(translatedResults)) {
+        textsFolder.file(`${code}.lang`, content);
+      }
+      textsFolder.file('languages.json', JSON.stringify(Object.keys(translatedResults), null, 2));
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "bedrock_texts_pack.zip";
+      a.click();
+    }
+
+    function generateLangKeys() {
+      const raw = document.getElementById('genInput').value.trim();
+      const prefix = document.getElementById('genPrefix').value;
+      const ns = document.getElementById('globalNamespace').value.trim() || 'mi_addon';
+      if (!raw) {
+        showToast('Escribe al menos un nombre');
+        return;
+      }
+
+      const lines = raw.split('\n').filter(l => l.trim() !== '');
+      const result = lines.map(line => {
+        const cleanName = line.trim();
+        const keyID = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        return `${prefix}.${ns}.${keyID}.name=${cleanName}`;
+      }).join('\n');
+
+      document.getElementById('genOutput').value = result;
+      document.getElementById('genResultContainer').classList.remove('hidden');
+    }
+
+    function copyGenOutput() {
+      navigator.clipboard.writeText(document.getElementById('genOutput').value);
+      showToast('Llaves copiadas');
+    }
+  </script>
+</body>
+</html>
