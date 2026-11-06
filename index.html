@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zian Codex - Add-on Copilot Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Librería JSZip para descomprimir y analizar add-ons en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4 flex flex-col items-center">
+  <div class="w-full max-w-xl bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700 space-y-6">
+    <header class="text-center">
+      <h1 class="text-2xl font-bold text-emerald-400">Zian Add-on Copilot</h1>
+      <p class="text-xs text-gray-400 mt-1">Auditor y generador privado de Bedrock</p>
+    </header>
+
+    <!-- Pestañas de navegación -->
+    <div class="flex border-b border-gray-700 pb-2 space-x-2">
+      <button onclick="switchTab('audit')" id="btn-audit" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition-all">Auditar Add-on</button>
+      <button onclick="switchTab('manifest')" id="btn-manifest" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-gray-700 text-gray-300 transition-all">Crear Manifiesto</button>
+    </div>
+
+    <!-- SECCIÓN 1: AUDITOR DE ADD-ONS -->
+    <div id="tab-audit" class="space-y-4">
+      <div class="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-emerald-500 transition-all cursor-pointer relative">
+        <input type="file" id="addonFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+        <div class="space-y-2">
+          <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <p class="text-sm text-gray-300">Sube tu <span class="font-semibold text-emerald-400">.zip, .mcpack o .mcaddon</span></p>
+          <p class="text-xs text-gray-500">Analizará la estructura y errores de sintaxis JSON</p>
+        </div>
+      </div>
+
+      <div id="auditResults" class="hidden bg-gray-900 rounded-xl p-4 border border-gray-700 space-y-3 max-h-60 overflow-y-auto">
+        <h3 class="text-sm font-bold text-gray-300 border-b border-gray-800 pb-1">Informe de Auditoría:</h3>
+        <div id="auditLog" class="text-xs space-y-2 font-mono"></div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: GENERADOR DE MANIFIESTOS -->
+    <div id="tab-manifest" class="hidden space-y-4">
+      <div>
+        <label class="block text-xs font-medium mb-1 text-gray-300">Nombre del Add-on</label>
+        <input type="text" id="mName" value="Zian Codex Custom" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+      </div>
+      <div>
+        <label class="block text-xs font-medium mb-1 text-gray-300">Descripción</label>
+        <textarea id="mDesc" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">Add-on optimizado por Zian</textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-medium mb-1 text-gray-300">Tipo de Paquete</label>
+        <select id="mType" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+          <option value="data">Behavior Pack</option>
+          <option value="resources">Resource Pack</option>
+        </select>
+      </div>
+      <button onclick="generateManifest()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-lg">
+        Generar manifest.json
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      const isAudit = tab === 'audit';
+      document.getElementById('tab-audit').classList.toggle('hidden', !isAudit);
+      document.getElementById('tab-manifest').classList.toggle('hidden', isAudit);
+      
+      document.getElementById('btn-audit').className = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${isAudit ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300'}`;
+      document.getElementById('btn-manifest').className = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${!isAudit ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300'}`;
+    }
+
+    function generateUUID() {
+      return 'crypto' in window && 'randomUUID' in crypto 
+        ? crypto.randomUUID() 
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+          });
+    }
+
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const resultsDiv = document.getElementById('auditResults');
+      const logDiv = document.getElementById('auditLog');
+      resultsDiv.classList.remove('hidden');
+      logDiv.innerHTML = '<p class="text-yellow-400">Analizando archivos del add-on...</p>';
+
+      try {
+        const zip = new JSZip();
+        const zipContent = await zip.loadAsync(file);
+        let logs = [];
+        let hasManifest = false;
+
+        // Recorrer los archivos dentro del zip
+        for (const [filename, zipEntry] of Object.entries(zipContent.files)) {
+          if (zipEntry.dir) continue;
+
+          if (filename.endsWith('manifest.json')) {
+            hasManifest = true;
+            try {
+              const content = await zipEntry.async('string');
+              JSON.parse(content);
+              logs.push(`<p class="text-emerald-400">✔ manifest.json encontrado y sintaxis correcta.</p>`);
+            } catch (e) {
+              logs.push(`<p class="text-red-400">✖ Error de sintaxis en manifest.json: ${e.message}</p>`);
+            }
+          } else if (filename.endsWith('.json')) {
+            try {
+              const content = await zipEntry.async('string');
+              JSON.parse(content);
+              logs.push(`<p class="text-gray-300">✔ JSON válido: ${filename}</p>`);
+            } catch (e) {
+              logs.push(`<p class="text-red-400">✖ Error JSON en ${filename}: ${e.message}</p>`);
+            }
+          }
+        }
+
+        if (!hasManifest) {
+          logs.unshift(`<p class="text-red-400">✖ Alerta crítica: No se encontró el archivo 'manifest.json' en la raíz.</p>`);
+        } else {
+          logs.unshift(`<p class="text-emerald-400"><b>Estructura general analizada con éxito.</b></p>`);
+        }
+
+        logDiv.innerHTML = logs.join('');
+      } catch (err) {
+        logDiv.innerHTML = `<p class="text-red-400">Error al leer el archivo comprimido: ${err.message}</p>`;
+      }
+    }
+
+    function generateManifest() {
+      const name = document.getElementById('mName').value || 'Zian Addon';
+      const desc = document.getElementById('mDesc').value || 'Sin descripción';
+      const type = document.getElementById('mType').value;
+
+      const manifest = {
+        format_version: 2,
+        header: { name, description: desc, uuid: generateUUID(), version: [1, 0, 0], min_engine_version: [1, 20, 0] },
+        modules: [{ type, uuid: generateUUID(), version: [1, 0, 0] }]
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(manifest, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = "manifest.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  </script>
+</body>
+</html>
