@@ -4,76 +4,120 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zian Add-on Copilot</title>
-  <!-- Configuración PWA para pantalla completa -->
+  
+  <!-- Soporte PWA Completo -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#111827">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Zian%20Add-on%20Copilot%22%2C%22short_name%22%3A%22ZianCopilot%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%7D">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-4 flex flex-col items-center">
-  <div class="w-full max-w-xl bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-700 space-y-6">
-    <header class="text-center">
-      <h1 class="text-2xl font-bold text-emerald-400">Zian Add-on Copilot</h1>
-      <p class="text-xs text-gray-400 mt-1">Auditor y generador privado de Bedrock</p>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 flex flex-col items-center justify-center font-sans">
+  <div class="w-full max-w-xl bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700 space-y-6">
+    
+    <header class="text-center space-y-1">
+      <h1 class="text-2xl font-extrabold text-emerald-400 tracking-wide">Zian Add-on Copilot</h1>
+      <p class="text-xs text-slate-400">Suite privada de auditoría y desarrollo para Bedrock</p>
     </header>
 
-    <div class="flex border-b border-gray-700 pb-2 space-x-2">
-      <button onclick="switchTab('audit')" id="btn-audit" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white transition-all">Auditar Add-on</button>
-      <button onclick="switchTab('manifest')" id="btn-manifest" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-gray-700 text-gray-300 transition-all">Crear Manifiesto</button>
+    <!-- Pestañas de Navegación -->
+    <div class="grid grid-cols-4 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700/50 text-xs font-semibold">
+      <button onclick="switchTab('audit')" id="btn-audit" class="py-2.5 rounded-lg bg-emerald-600 text-white transition-all">Auditar</button>
+      <button onclick="switchTab('manifest')" id="btn-manifest" class="py-2.5 rounded-lg text-slate-400 transition-all">Manifiesto</button>
+      <button onclick="switchTab('uuids')" id="btn-uuids" class="py-2.5 rounded-lg text-slate-400 transition-all">UUIDs</button>
+      <button onclick="switchTab('validator')" id="btn-validator" class="py-2.5 rounded-lg text-slate-400 transition-all">JSON Lint</button>
     </div>
 
-    <!-- AUDITOR -->
+    <!-- MÓDULO 1: AUDITOR -->
     <div id="tab-audit" class="space-y-4">
-      <div class="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center hover:border-emerald-500 transition-all cursor-pointer relative">
+      <div class="border-2 border-dashed border-slate-600 hover:border-emerald-500 rounded-xl p-6 text-center transition-all cursor-pointer relative bg-slate-800/50">
         <input type="file" id="addonFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
         <div class="space-y-2">
-          <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-          <p class="text-sm text-gray-300">Sube tu <span class="font-semibold text-emerald-400">.zip, .mcpack o .mcaddon</span></p>
-          <p class="text-xs text-gray-500">Analizará la estructura y errores de sintaxis JSON</p>
+          <svg class="mx-auto h-10 w-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <p class="text-sm text-slate-200">Sube tu <span class="font-bold text-emerald-400">.zip, .mcpack o .mcaddon</span></p>
+          <p class="text-xs text-slate-400">Analiza estructura y valida sintaxis JSON</p>
         </div>
       </div>
 
-      <div id="auditResults" class="hidden bg-gray-900 rounded-xl p-4 border border-gray-700 space-y-3 max-h-60 overflow-y-auto">
-        <h3 class="text-sm font-bold text-gray-300 border-b border-gray-800 pb-1">Informe de Auditoría:</h3>
+      <div id="auditResults" class="hidden bg-slate-950 rounded-xl p-4 border border-slate-800 space-y-3 max-h-60 overflow-y-auto">
+        <h3 class="text-xs font-bold text-slate-400 border-b border-slate-800 pb-1">Informe de Auditoría:</h3>
         <div id="auditLog" class="text-xs space-y-2 font-mono"></div>
       </div>
     </div>
 
-    <!-- MANIFIESTO -->
+    <!-- MÓDULO 2: MANIFIESTO -->
     <div id="tab-manifest" class="hidden space-y-4">
-      <div>
-        <label class="block text-xs font-medium mb-1 text-gray-300">Nombre del Add-on</label>
-        <input type="text" id="mName" value="Zian Codex Custom" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-      </div>
-      <div>
-        <label class="block text-xs font-medium mb-1 text-gray-300">Descripción</label>
-        <textarea id="mDesc" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">Add-on optimizado por Zian</textarea>
-      </div>
-      <div>
-        <label class="block text-xs font-medium mb-1 text-gray-300">Tipo de Paquete</label>
-        <select id="mType" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-          <option value="data">Behavior Pack</option>
-          <option value="resources">Resource Pack</option>
-        </select>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium mb-1 text-slate-300">Nombre del Add-on</label>
+          <input type="text" id="mName" value="Zian Codex Custom" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1 text-slate-300">Descripción</label>
+          <textarea id="mDesc" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 h-20">Add-on optimizado por Zian</textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium mb-1 text-slate-300">Tipo de Paquete</label>
+          <select id="mType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+            <option value="data">Behavior Pack (Comportamiento)</option>
+            <option value="resources">Resource Pack (Recursos)</option>
+          </select>
+        </div>
       </div>
       <button onclick="generateManifest()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-lg">
-        Generar manifest.json
+        Generar y Descargar manifest.json
       </button>
     </div>
+
+    <!-- MÓDULO 3: GENERADOR DE UUIDS -->
+    <div id="tab-uuids" class="hidden space-y-4">
+      <div class="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-700">
+        <label class="text-xs text-slate-300 font-medium">Cantidad a generar:</label>
+        <select id="uuidCount" class="bg-slate-800 border border-slate-600 rounded-lg text-xs p-1.5 text-white">
+          <option value="1">1 UUID</option>
+          <option value="2">2 UUIDs (Header + Module)</option>
+          <option value="5">5 UUIDs</option>
+          <option value="10">10 UUIDs</option>
+        </select>
+      </div>
+      <button onclick="generateUUIDList()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg text-sm transition-all">
+        Generar UUIDs
+      </button>
+      <div id="uuidContainer" class="hidden space-y-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <div id="uuidList" class="text-xs font-mono text-emerald-400 space-y-1 select-all"></div>
+        <button onclick="copyUUIDs()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-2 rounded-lg mt-2 border border-slate-700">
+          Copiar Todos al Portapapeles
+        </button>
+      </div>
+    </div>
+
+    <!-- MÓDULO 4: VALIDADOR DE JSON -->
+    <div id="tab-validator" class="hidden space-y-3">
+      <textarea id="jsonInput" placeholder="Pega aquí tu fragmento de código JSON (entidad, item, receta)..." class="w-full h-36 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+      <button onclick="validateJSONSnippet()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg text-sm transition-all">
+        Validar Sintaxis
+      </button>
+      <div id="jsonFeedback" class="hidden p-3 rounded-xl text-xs font-mono"></div>
+    </div>
+
   </div>
 
   <script>
+    // Sistema de Pestañas
     function switchTab(tab) {
-      const isAudit = tab === 'audit';
-      document.getElementById('tab-audit').classList.toggle('hidden', !isAudit);
-      document.getElementById('tab-manifest').classList.toggle('hidden', isAudit);
-      
-      document.getElementById('btn-audit').className = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${isAudit ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300'}`;
-      document.getElementById('btn-manifest').className = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${!isAudit ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300'}`;
+      const tabs = ['audit', 'manifest', 'uuids', 'validator'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`btn-${t}`);
+        const active = t === tab;
+        el.classList.toggle('hidden', !active);
+        btn.className = `py-2.5 rounded-lg transition-all ${active ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`;
+      });
     }
 
+    // Generador de UUID v4
     function generateUUID() {
       return 'crypto' in window && 'randomUUID' in crypto 
         ? crypto.randomUUID() 
@@ -83,6 +127,7 @@
           });
     }
 
+    // Auditoría de archivos .zip/.mcpack
     async function handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -90,7 +135,7 @@
       const resultsDiv = document.getElementById('auditResults');
       const logDiv = document.getElementById('auditLog');
       resultsDiv.classList.remove('hidden');
-      logDiv.innerHTML = '<p class="text-yellow-400">Analizando archivos del add-on...</p>';
+      logDiv.innerHTML = '<p class="text-yellow-400">Analizando paquete...</p>';
 
       try {
         const zip = new JSZip();
@@ -106,15 +151,15 @@
             try {
               const content = await zipEntry.async('string');
               JSON.parse(content);
-              logs.push(`<p class="text-emerald-400">✔ manifest.json encontrado y sintaxis correcta.</p>`);
+              logs.push(`<p class="text-emerald-400">✔ manifest.json encontrado y válido.</p>`);
             } catch (e) {
-              logs.push(`<p class="text-red-400">✖ Error de sintaxis en manifest.json: ${e.message}</p>`);
+              logs.push(`<p class="text-red-400">✖ Error en manifest.json: ${e.message}</p>`);
             }
           } else if (filename.endsWith('.json')) {
             try {
               const content = await zipEntry.async('string');
               JSON.parse(content);
-              logs.push(`<p class="text-gray-300">✔ JSON válido: ${filename}</p>`);
+              logs.push(`<p class="text-slate-400">✔ JSON OK: ${filename}</p>`);
             } catch (e) {
               logs.push(`<p class="text-red-400">✖ Error JSON en ${filename}: ${e.message}</p>`);
             }
@@ -122,17 +167,18 @@
         }
 
         if (!hasManifest) {
-          logs.unshift(`<p class="text-red-400">✖ Alerta crítica: No se encontró el archivo 'manifest.json' en la raíz.</p>`);
+          logs.unshift(`<p class="text-red-400 font-bold">✖ Crítico: Falta 'manifest.json' en la raíz.</p>`);
         } else {
-          logs.unshift(`<p class="text-emerald-400"><b>Estructura general analizada con éxito.</b></p>`);
+          logs.unshift(`<p class="text-emerald-400 font-bold">Estructura general analizada.</p>`);
         }
 
         logDiv.innerHTML = logs.join('');
       } catch (err) {
-        logDiv.innerHTML = `<p class="text-red-400">Error al leer el archivo comprimido: ${err.message}</p>`;
+        logDiv.innerHTML = `<p class="text-red-400">Error al leer el paquete: ${err.message}</p>`;
       }
     }
 
+    // Generador de Manifiesto
     function generateManifest() {
       const name = document.getElementById('mName').value || 'Zian Addon';
       const desc = document.getElementById('mDesc').value || 'Sin descripción';
@@ -151,6 +197,58 @@
       document.body.appendChild(a);
       a.click();
       a.remove();
+    }
+
+    // Generador de Lista de UUIDs
+    function generateUUIDList() {
+      const count = parseInt(document.getElementById('uuidCount').value, 10);
+      const container = document.getElementById('uuidContainer');
+      const listDiv = document.getElementById('uuidList');
+      
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `<div>${generateUUID()}</div>`;
+      }
+      
+      listDiv.innerHTML = html;
+      container.classList.remove('hidden');
+    }
+
+    function copyUUIDs() {
+      const listDiv = document.getElementById('uuidList');
+      const text = Array.from(listDiv.children).map(c => c.textContent).join('\n');
+      navigator.clipboard.writeText(text);
+      alert('¡UUIDs copiados al portapapeles!');
+    }
+
+    // Validador de Sintaxis JSON rápida
+    function validateJSONSnippet() {
+      const raw = document.getElementById('jsonInput').value.trim();
+      const feedback = document.getElementById('jsonFeedback');
+      feedback.classList.remove('hidden');
+
+      if (!raw) {
+        feedback.className = "p-3 rounded-xl text-xs font-mono bg-yellow-950 text-yellow-300 border border-yellow-800";
+        feedback.textContent = "Ingresa algún código JSON para validar.";
+        return;
+      }
+
+      try {
+        JSON.parse(raw);
+        feedback.className = "p-3 rounded-xl text-xs font-mono bg-emerald-950 text-emerald-300 border border-emerald-800";
+        feedback.textContent = "✔ Sintaxis JSON impecable. Sin errores de llaves ni comas.";
+      } catch (err) {
+        feedback.className = "p-3 rounded-xl text-xs font-mono bg-red-950 text-red-300 border border-red-800";
+        feedback.textContent = `✖ Error de sintaxis: ${err.message}`;
+      }
+    }
+
+    // Registro automático de Service Worker en memoria para habilitar PWA
+    if ('serviceWorker' in navigator) {
+      const swCode = `self.addEventListener('fetch', function(e) { e.respondWith(fetch(e.request)); });`;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(() => {});
     }
   </script>
 </body>
