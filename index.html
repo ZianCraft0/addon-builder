@@ -111,6 +111,10 @@
           </div>
         </div>
         <div id="languageGrid" class="scroll grid grid-cols-2 sm:grid-cols-3 gap-1.5 h-44 overflow-y-auto pr-1 text-[11px] font-mono"></div>
+        <div class="space-y-1.5 pt-1">
+          <label for="mmEmail" class="text-[11px] text-slate-500">Email para MyMemory <span class="text-slate-600">(opcional, sube el límite diario gratuito)</span></label>
+          <input type="email" id="mmEmail" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600" placeholder="tucorreo@ejemplo.com">
+        </div>
       </section>
 
       <button onclick="processBatchTranslation()" id="translateBtn" class="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition-all">
@@ -260,6 +264,11 @@
         </label>
       `).join('');
       grid.addEventListener('change', updateLangCount);
+
+      // Recuerda el email en este navegador (opcional)
+      const mm = document.getElementById('mmEmail');
+      try { mm.value = localStorage.getItem('mmEmail') || ''; } catch (e) {}
+      mm.addEventListener('input', () => { try { localStorage.setItem('mmEmail', mm.value.trim()); } catch (e) {} });
       updateLangCount();
     };
 
@@ -397,7 +406,7 @@
 
       document.getElementById('resultsContainer').classList.remove('hidden');
       if (quotaHit) {
-        log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Se alcanzó el límite diario de MyMemory. ${failed} línea(s) quedaron sin traducir (con el texto original). Intenta de nuevo más tarde.</span>`;
+        log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Se alcanzó el límite diario de MyMemory. ${failed} línea(s) quedaron sin traducir (con el texto original). Intenta de nuevo más tarde, o agrega tu email en el paso 2 para subir el límite.</span>`;
       } else if (failed > 0) {
         log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Listo, pero ${failed} línea(s) no se pudieron traducir y quedaron con el texto original. Ejemplos: <span class="font-mono">${failedKeys.join(', ')}</span></span>`;
       } else {
@@ -470,8 +479,11 @@
       if (quotaHit) return { text, ok: false, fresh: false };
 
       try {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(out)}&langpair=${srcLang}|${targetLang}`;
+        const email = (document.getElementById('mmEmail').value || '').trim();
+        const emailParam = /^\S+@\S+\.\S+$/.test(email) ? `&de=${encodeURIComponent(email)}` : '';
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(out)}&langpair=${srcLang}|${targetLang}${emailParam}`;
         const res = await fetch(url);
+        if (res.status === 429) { quotaHit = true; return { text, ok: false, fresh: true }; }
         if (!res.ok) throw new Error('Error en la red');
         const data = await res.json();
 
