@@ -1,1 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zian Add-on Copilot - Studio IDE</title>
+  
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Zian%20Add-on%20Copilot%22%2C%22short_name%22%3A%22ZianCopilot%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%7D">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Highlighter Prism syntax -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 
+  <style>
+    .folder-toggle::before { content: "› "; display: inline-block; transition: transform 0.2s; font-weight: bold; }
+    .folder-toggle.open::before { transform: rotate(90deg); }
+    /* Syntax editor overlay hack */
+    .editor-container { position: relative; font-family: monospace; }
+    .editor-container textarea, .editor-container pre {
+      margin: 0; padding: 10px; border: 0; width: 100%; height: 100%;
+      font-size: 12px; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
+      tab-size: 2;
+    }
+    .editor-container textarea {
+      position: absolute; top: 0; left: 0; color: transparent; background: transparent;
+      caret-color: #10b981; resize: none; outline: none; z-index: 1;
+    }
+    .editor-container pre { pointer-events: none; overflow: auto; }
+    .token.property { color: #34d399 !important; } /* Verde esmeralda para claves JSON */
+    .token.string { color: #a7f3d0 !important; }
+    .token.number { color: #f59e0b !important; }
+    .token.boolean { color: #60a5fa !important; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-2 flex flex-col items-center justify-start font-sans">
+  <div class="w-full max-w-4xl bg-slate-800 rounded-2xl p-4 shadow-2xl border border-slate-700 space-y-4 my-auto">
+    
+    <header class="flex items-center justify-between border-b border-slate-700 pb-3">
+      <div>
+        <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Zian Add-on Copilot</h1>
+        <p class="text-[10px] text-slate-400">IDE Móvil Organico & Auditor para Minecraft Bedrock</p>
+      </div>
+      <button onclick="exportWorkspace()" id="exportBtn" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg transition-all">
+        Exportar .mcpack / .zip
+      </button>
+    </header>
+
+    <!-- NAVEGACIÓN PRINCIPAL -->
+    <div class="grid grid-cols-5 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700/50 text-[11px] font-semibold">
+      <button onclick="switchTab('editor')" id="btn-editor" class="py-2 rounded-lg bg-emerald-600 text-white transition-all">IDE Studio</button>
+      <button onclick="switchTab('audit')" id="btn-audit" class="py-2 rounded-lg text-slate-400 transition-all">Auditar</button>
+      <button onclick="switchTab('lang')" id="btn-lang" class="py-2 rounded-lg text-slate-400 transition-all">Lang Tool</button>
+      <button onclick="switchTab('manifest')" id="btn-manifest" class="py-2 rounded-lg text-slate-400 transition-all">Manifiesto</button>
+      <button onclick="switchTab('uuids')" id="btn-uuids" class="py-2 rounded-lg text-slate-400 transition-all">UUIDs</button>
+    </div>
+
+    <!-- MÓDULO IDE WORKSPACE -->
+    <div id="tab-editor" class="space-y-3">
+      <div id="dropZone" class="border-2 border-dashed border-slate-600 hover:border-emerald-500 rounded-xl p-6 text-center transition-all cursor-pointer relative bg-slate-800/50">
+        <input type="file" id="workspaceFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="loadAddonWorkspace(event)">
+        <div class="space-y-1">
+          <p class="text-xs text-slate-200">Cargar Proyecto Add-on (<span class="font-bold text-emerald-400">.zip, .mcpack, .mcaddon</span>)</p>
+          <p class="text-[10px] text-slate-400">Abre el árbol de carpetas interactivo y el editor en vivo</p>
+        </div>
+      </div>
+
+      <div id="workspaceView" class="hidden grid grid-cols-1 md:grid-cols-3 gap-3">
+        <!-- Explorador de Archivos estilo Spck -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 h-80 overflow-y-auto">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <span class="text-[11px] font-bold text-slate-400">EXPLORADOR</span>
+            <span id="fileCountBadge" class="text-[9px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded">0 archivos</span>
+          </div>
+          <div id="fileTreeContainer" class="text-xs font-mono select-none space-y-1"></div>
+        </div>
+
+        <!-- Editor de Código con Syntax Highlighting -->
+        <div class="md:col-span-2 bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col h-80 space-y-2">
+          <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-1">
+            <span id="activeFileName" class="font-mono text-emerald-400 font-bold truncate">Selecciona un archivo</span>
+            <div id="syntaxStatus" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+              Esperando archivo...
+            </div>
+          </div>
+
+          <div class="editor-container flex-grow rounded-lg bg-slate-900 border border-slate-800 overflow-hidden">
+            <pre id="highlighting"><code class="language-json" id="highlighting-content"></code></pre>
+            <textarea id="codeEditor" spellcheck="false" placeholder="// El código aparecerá aquí..." oninput="updateEditorContent(this.value); syncScroll(this);"></textarea>
+          </div>
+
+          <div class="flex justify-between items-center text-[10px]">
+            <span class="text-slate-500">Formato: JSON / JS / LANG</span>
+            <button onclick="formatCurrentJSON()" class="text-emerald-400 hover:underline font-semibold">Formatear JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÓDULO LANG TOOL -->
+    <div id="tab-lang" class="hidden space-y-3">
+      <textarea id="langInput" placeholder="Piedra del Caos&#10;Espada Oscura" class="w-full h-24 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+      <div class="grid grid-cols-2 gap-2">
+        <select id="langPrefix" class="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
+          <option value="item">Objeto (item.zian.name)</option>
+          <option value="tile">Bloque (tile.zian.name)</option>
+          <option value="entity">Entidad (entity.zian.name)</option>
+        </select>
+        <button onclick="generateLangKeys()" class="bg-emerald-600 text-white font-semibold py-2 rounded-lg text-xs">Generar .lang</button>
+      </div>
+      <div id="langResultContainer" class="hidden space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+        <textarea id="langOutput" readonly class="w-full h-28 bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs font-mono text-emerald-400 resize-none"></textarea>
+        <button onclick="copyLangOutput()" class="w-full bg-slate-800 text-slate-200 text-xs py-1.5 rounded-lg border border-slate-700">Copiar al Portapapeles</button>
+      </div>
+    </div>
+
+    <!-- OTROS MÓDULOS -->
+    <div id="tab-audit" class="hidden space-y-4">
+      <div class="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center bg-slate-800/50">
+        <input type="file" id="addonFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+        <p class="text-xs text-slate-200">Sube tu paquete para auditar sintaxis JSON rápida</p>
+      </div>
+      <div id="auditResults" class="hidden bg-slate-950 rounded-xl p-3 border border-slate-800 max-h-48 overflow-y-auto">
+        <div id="auditLog" class="text-xs space-y-1 font-mono"></div>
+      </div>
+    </div>
+
+    <div id="tab-manifest" class="hidden space-y-3">
+      <input type="text" id="mName" value="Zian Codex Custom" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+      <textarea id="mDesc" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs h-16">Add-on optimizado por Zian</textarea>
+      <select id="mType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs">
+        <option value="data">Behavior Pack</option>
+        <option value="resources">Resource Pack</option>
+      </select>
+      <button onclick="generateManifest()" class="w-full bg-emerald-600 text-white py-2 rounded-lg text-xs font-semibold">Descargar manifest.json</button>
+    </div>
+
+    <div id="tab-uuids" class="hidden space-y-3">
+      <div class="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-700">
+        <label class="text-xs text-slate-300">Cantidad:</label>
+        <select id="uuidCount" class="bg-slate-800 border border-slate-600 rounded-lg text-xs p-1 text-white">
+          <option value="1">1 UUID</option>
+          <option value="2">2 UUIDs</option>
+          <option value="5">5 UUIDs</option>
+          <option value="10">10 UUIDs</option>
+        </select>
+      </div>
+      <button onclick="generateUUIDList()" class="w-full bg-emerald-600 text-white font-semibold py-2 rounded-lg text-xs">Generar UUIDs</button>
+      <div id="uuidContainer" class="hidden space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+        <div id="uuidList" class="text-xs font-mono text-emerald-400 space-y-1 select-all"></div>
+        <button onclick="copyUUIDs()" class="w-full bg-slate-800 text-slate-200 text-xs py-1.5 rounded-lg border border-slate-700">Copiar Todos</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let fileTreeData = {};
+    let currentZipFiles = {};
+    let activeFilePath = null;
+
+    function switchTab(tab) {
+      ['editor', 'audit', 'lang', 'manifest', 'uuids'].forEach(t => {
+        const active = t === tab;
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', !active);
+        document.getElementById(`btn-${t}`).className = `py-2 rounded-lg transition-all ${active ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`;
+      });
+    }
+
+    function generateUUID() {
+      return 'crypto' in window && 'randomUUID' in crypto ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
+    }
+
+    // CARGA DE ADD-ON Y ÁRBOL ORGANICO
+    async function loadAddonWorkspace(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      currentZipFiles = {};
+      fileTreeData = {};
+      const zip = new JSZip();
+      const loadedZip = await zip.loadAsync(file);
+
+      let count = 0;
+      for (const [relativePath, zipEntry] of Object.entries(loadedZip.files)) {
+        if (zipEntry.dir) continue;
+        const content = await zipEntry.async('string');
+        currentZipFiles[relativePath] = content;
+        buildTreeData(relativePath);
+        count++;
+      }
+
+      document.getElementById('fileCountBadge').textContent = `${count} archivos`;
+      renderTree();
+
+      document.getElementById('dropZone').classList.add('hidden');
+      document.getElementById('workspaceView').classList.remove('hidden');
+      document.getElementById('exportBtn').classList.remove('hidden');
+    }
+
+    function buildTreeData(path) {
+      const parts = path.split('/');
+      let current = fileTreeData;
+      parts.forEach((part, index) => {
+        if (index === parts.length - 1) {
+          current[part] = path; // Archivo final
+        } else {
+          current[part] = current[part] || {};
+          current = current[part];
+        }
+      });
+    }
+
+    function renderTree() {
+      const container = document.getElementById('fileTreeContainer');
+      container.innerHTML = createTreeHTML(fileTreeData);
+    }
+
+    function createTreeHTML(node, path = '') {
+      let html = '';
+      for (const key in node) {
+        if (typeof node[key] === 'object') {
+          html += `<div class="ml-2">
+            <div class="folder-toggle cursor-pointer text-emerald-400 font-semibold hover:text-emerald-300 py-0.5" onclick="toggleFolder(this)">${key}</div>
+            <div class="folder-content hidden border-l border-slate-700/50 pl-2">
+              ${createTreeHTML(node[key], path + key + '/')}
+            </div>
+          </div>`;
+        } else {
+          const filePath = node[key];
+          const ext = key.split('.').pop();
+          let icon = '📄';
+          if (ext === 'json') icon = '⚙️';
+          if (ext === 'js') icon = '📜';
+          if (ext === 'lang') icon = '🌐';
+
+          html += `<div class="ml-4 cursor-pointer hover:bg-slate-800 text-slate-300 px-1 py-0.5 rounded truncate flex items-center gap-1" onclick="openFileInEditor('${filePath}')">
+            <span class="text-[10px]">${icon}</span> <span>${key}</span>
+          </div>`;
+        }
+      }
+      return html;
+    }
+
+    function toggleFolder(el) {
+      el.classList.toggle('open');
+      const content = el.nextElementSibling;
+      content.classList.toggle('hidden');
+    }
+
+    // EDITOR & SYNTAX HIGHLIGHTING & DETECTOR DE ERRORES
+    function openFileInEditor(path) {
+      activeFilePath = path;
+      document.getElementById('activeFileName').textContent = path;
+      const content = currentZipFiles[path] || '';
+      document.getElementById('codeEditor').value = content;
+      updateEditorContent(content);
+    }
+
+    function updateEditorContent(val) {
+      if (activeFilePath) {
+        currentZipFiles[activeFilePath] = val;
+      }
+      
+      const codeEl = document.getElementById('highlighting-content');
+      const statusEl = document.getElementById('syntaxStatus');
+      codeEl.textContent = val;
+
+      if (activeFilePath && activeFilePath.endsWith('.json')) {
+        codeEl.className = 'language-json';
+        try {
+          if (val.trim()) JSON.parse(val);
+          statusEl.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+          statusEl.textContent = '✔ Sintaxis JSON Válida';
+        } catch (e) {
+          statusEl.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800';
+          statusEl.textContent = `✖ Error de sintaxis JSON`;
+        }
+      } else if (activeFilePath && activeFilePath.endsWith('.js')) {
+        codeEl.className = 'language-javascript';
+        statusEl.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800';
+        statusEl.textContent = 'Script JS';
+      } else {
+        codeEl.className = 'language-none';
+        statusEl.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800';
+        statusEl.textContent = 'Texto plano / Lang';
+      }
+
+      Prism.highlightElement(codeEl);
+    }
+
+    function syncScroll(element) {
+      const resultElement = document.getElementById('highlighting');
+      resultElement.scrollTop = element.scrollTop;
+      resultElement.scrollLeft = element.scrollLeft;
+    }
+
+    function formatCurrentJSON() {
+      if (!activeFilePath || !activeFilePath.endsWith('.json')) return;
+      try {
+        const raw = document.getElementById('codeEditor').value;
+        const formatted = JSON.stringify(JSON.parse(raw), null, 2);
+        document.getElementById('codeEditor').value = formatted;
+        updateEditorContent(formatted);
+      } catch(e) {
+        alert('No se puede formatear: el JSON contiene errores de sintaxis.');
+      }
+    }
+
+    async function exportWorkspace() {
+      const zip = new JSZip();
+      for (const [path, content] of Object.entries(currentZipFiles)) {
+        zip.file(path, content);
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "zian_addon_modificado.mcpack";
+      a.click();
+    }
+
+    // LANG TOOL
+    function generateLangKeys() {
+      const raw = document.getElementById('langInput').value.trim();
+      const prefix = document.getElementById('langPrefix').value;
+      if (!raw) return;
+
+      const lines = raw.split('\n').filter(l => l.trim() !== '');
+      const result = lines.map(line => {
+        const cleanName = line.trim();
+        const keyID = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        return `${prefix}.zian.${keyID}.name=${cleanName}`;
+      }).join('\n');
+
+      document.getElementById('langOutput').value = result;
+      document.getElementById('langResultContainer').classList.remove('hidden');
+    }
+
+    function copyLangOutput() {
+      navigator.clipboard.writeText(document.getElementById('langOutput').value);
+      alert('¡Textos .lang copiados!');
+    }
+
+    // AUDITOR Y OTROS
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const resultsDiv = document.getElementById('auditResults');
+      const logDiv = document.getElementById('auditLog');
+      resultsDiv.classList.remove('hidden');
+      logDiv.innerHTML = '<p class="text-yellow-400">Analizando...</p>';
+
+      try {
+        const zip = new JSZip();
+        const zipContent = await zip.loadAsync(file);
+        let logs = [];
+        for (const [filename, zipEntry] of Object.entries(zipContent.files)) {
+          if (zipEntry.dir || !filename.endsWith('.json')) continue;
+          try {
+            JSON.parse(await zipEntry.async('string'));
+            logs.push(`<p class="text-slate-400">✔ ${filename}</p>`);
+          } catch (e) {
+            logs.push(`<p class="text-red-400">✖ ${filename}: ${e.message}</p>`);
+          }
+        }
+        logDiv.innerHTML = logs.join('');
+      } catch (err) {
+        logDiv.innerHTML = `<p class="text-red-400">Error: ${err.message}</p>`;
+      }
+    }
+
+    function generateManifest() {
+      const name = document.getElementById('mName').value || 'Zian Addon';
+      const desc = document.getElementById('mDesc').value || 'Sin descripción';
+      const type = document.getElementById('mType').value;
+      const manifest = {
+        format_version: 2,
+        header: { name, description: desc, uuid: generateUUID(), version: [1, 0, 0], min_engine_version: [1, 20, 0] },
+        modules: [{ type, uuid: generateUUID(), version: [1, 0, 0] }]
+      };
+      const a = document.createElement('a');
+      a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(manifest, null, 2));
+      a.download = "manifest.json";
+      a.click();
+    }
+
+    function generateUUIDList() {
+      const count = parseInt(document.getElementById('uuidCount').value, 10);
+      let html = '';
+      for (let i = 0; i < count; i++) html += `<div>${generateUUID()}</div>`;
+      document.getElementById('uuidList').innerHTML = html;
+      document.getElementById('uuidContainer').classList.remove('hidden');
+    }
+
+    function copyUUIDs() {
+      const text = Array.from(document.getElementById('uuidList').children).map(c => c.textContent).join('\n');
+      navigator.clipboard.writeText(text);
+      alert('¡UUIDs copiados!');
+    }
+  </script>
+</body>
+</html>
