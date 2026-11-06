@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zian Lang Studio - Traductor Bedrock</title>
+  <title>Bedrock Lang Studio - Traductor Universal</title>
   
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,11 +16,12 @@
   <div class="w-full max-w-xl bg-slate-800/90 backdrop-blur rounded-2xl p-5 shadow-2xl border border-slate-700 space-y-5 my-auto">
     
     <!-- ENCABEZADO DE PRESENTACIÓN -->
-    <header class="text-center space-y-1 border-b border-slate-700/60 pb-4">
-      <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Zian Lang Studio</h1>
-      <p class="text-xs text-slate-400">Traductor Masivo de Localización (.lang) para Minecraft Bedrock</p>
-      <div class="pt-2">
-        <span class="text-[10px] bg-slate-900 text-emerald-400 px-3 py-1 rounded-full border border-slate-700 font-mono shadow-inner">Namespace oficial: zclegacy</span>
+    <header class="text-center space-y-1.5 border-b border-slate-700/60 pb-4">
+      <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Bedrock Lang Studio</h1>
+      <p class="text-xs text-slate-400">Traductor Masivo de Localización (.lang) Universal</p>
+      <div class="pt-1 flex items-center justify-center gap-2">
+        <label for="globalNamespace" class="text-[10px] text-slate-400">Namespace:</label>
+        <input type="text" id="globalNamespace" value="zclegacy" class="bg-slate-900 text-emerald-400 text-xs px-2.5 py-0.5 rounded-lg border border-slate-700 font-mono w-28 text-center focus:outline-none focus:border-emerald-500" placeholder="ej. mi_addon">
       </div>
     </header>
 
@@ -39,13 +40,13 @@
       <button onclick="switchView('generator')" class="w-full bg-slate-900 hover:bg-slate-950 border border-slate-700 hover:border-emerald-500/60 p-4 rounded-xl text-left transition-all flex items-center justify-between group shadow-lg">
         <div class="space-y-0.5">
           <div class="text-sm font-bold text-emerald-400 group-hover:translate-x-1 transition-transform">⚙️ Generador Rápido de Llaves</div>
-          <p class="text-[11px] text-slate-400">Crea claves individuales en formato item/tile/entity con tu namespace.</p>
+          <p class="text-[11px] text-slate-400">Crea claves individuales en formato item/tile/entity usando tu namespace.</p>
         </div>
         <span class="text-slate-500 group-hover:text-emerald-400 text-lg transition-colors">›</span>
       </button>
     </div>
 
-    <!-- MÓDULO 1: TRADUCTOR MASIVO (Oculto por defecto) -->
+    <!-- MÓDULO 1: TRADUCTOR MASIVO -->
     <div id="view-translator" class="hidden space-y-4">
       <div class="flex items-center justify-between">
         <button onclick="switchView('menu')" class="text-xs text-emerald-400 hover:underline flex items-center gap-1 font-semibold">
@@ -101,22 +102,22 @@
       </div>
     </div>
 
-    <!-- MÓDULO 2: GENERADOR RÁPIDO DE LLAVES (Oculto por defecto) -->
+    <!-- MÓDULO 2: GENERADOR RÁPIDO DE LLAVES -->
     <div id="view-generator" class="hidden space-y-4">
       <div class="flex items-center justify-between">
         <button onclick="switchView('menu')" class="text-xs text-emerald-400 hover:underline flex items-center gap-1 font-semibold">
           ← Volver al menú
         </button>
-        <span class="text-[10px] text-slate-400 font-mono">Modo: Generador ZClegacy</span>
+        <span class="text-[10px] text-slate-400 font-mono">Modo: Generador Personalizado</span>
       </div>
 
       <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
         <textarea id="genInput" placeholder="Piedra del Caos&#10;Espada Oscura" class="w-full h-28 bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 resize-none"></textarea>
         <div class="grid grid-cols-2 gap-2">
           <select id="genPrefix" class="bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-            <option value="item">Objeto (item.zclegacy...)</option>
-            <option value="tile">Bloque (tile.zclegacy...)</option>
-            <option value="entity">Entidad (entity.zclegacy...)</option>
+            <option value="item">Objeto (item.ns...)</option>
+            <option value="tile">Bloque (tile.ns...)</option>
+            <option value="entity">Entidad (entity.ns...)</option>
           </select>
           <button onclick="generateLangKeys()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-lg text-xs shadow">Generar Llaves</button>
         </div>
@@ -204,6 +205,7 @@
         return;
       }
 
+      const ns = document.getElementById('globalNamespace').value.trim() || 'zclegacy';
       const btn = document.getElementById('translateBtn');
       const log = document.getElementById('statusLog');
       btn.disabled = true;
@@ -230,8 +232,13 @@
           }
 
           const parts = trimmed.split('=');
-          const key = parts[0].trim();
+          let key = parts[0].trim();
           const val = parts.slice(1).join('=').trim();
+
+          // Reemplazar dinámicamente el namespace si el usuario cambió el global
+          if (ns !== 'zclegacy') {
+            key = key.replace(/\.zclegacy\./g, `.${ns}.`);
+          }
 
           if (targetLang === 'es') {
             translatedLines.push(`${key}=${val}`);
@@ -291,20 +298,21 @@
       const blob = await zip.generateAsync({ type: "blob" });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = "zian_texts_pack.zip";
+      a.download = "bedrock_texts_pack.zip";
       a.click();
     }
 
     function generateLangKeys() {
       const raw = document.getElementById('genInput').value.trim();
       const prefix = document.getElementById('genPrefix').value;
+      const ns = document.getElementById('globalNamespace').value.trim() || 'zclegacy';
       if (!raw) return;
 
       const lines = raw.split('\n').filter(l => l.trim() !== '');
       const result = lines.map(line => {
         const cleanName = line.trim();
         const keyID = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-        return `${prefix}.zclegacy.${keyID}.name=${cleanName}`;
+        return `${prefix}.${ns}.${keyID}.name=${cleanName}`;
       }).join('\n');
 
       document.getElementById('genOutput').value = result;
