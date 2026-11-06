@@ -322,6 +322,7 @@
       const total = selectedCheckboxes.length;
       let done = 0;
       let failed = 0;
+      const failedKeys = [];
       let translatedCount = 0;
       quotaHit = false;
       let localCount = 0;
@@ -338,7 +339,7 @@
       // Detecta el namespace de origen (el más frecuente en llaves item/tile/entity)
       const nsCounts = {};
       for (const l of lines) {
-        const m = l.trim().match(/^(?:item|tile|entity)\.([^.=]+)\./);
+        const m = l.trim().match(/^(?:item|tile|entity)\.([^.=:]+)[.:]/);
         if (m) nsCounts[m[1]] = (nsCounts[m[1]] || 0) + 1;
       }
       const srcNs = Object.keys(nsCounts).sort((a, b) => nsCounts[b] - nsCounts[a])[0] || '';
@@ -365,8 +366,9 @@
           const comment = cm[2] || '';
 
           if (ns !== '' && srcNs !== '') {
-            const kp = key.split('.');
-            if (kp.length > 2 && kp[1] === srcNs) { kp[1] = ns; key = kp.join('.'); }
+            // Cambia el namespace tanto en item.ns:id como en item.ns.id y ns.algo.algo
+            const esc = srcNs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            key = key.replace(new RegExp('^((?:(?:item|tile|entity)\\.)?)' + esc + '(?=[.:])'), (m, p) => p + ns);
           }
 
           if (targetLang === srcLang) {
@@ -375,7 +377,8 @@
           }
 
           const r = await translateString(val, srcLang, targetLang);
-          if (r.ok) translatedCount++; else failed++;
+          if (r.ok) translatedCount++;
+          else { failed++; if (failedKeys.length < 3) failedKeys.push(key); }
           if (r.ok && r.engine === 'local') localCount++;
           if (r.ok && r.engine === 'remote') remoteCount++;
           translatedLines.push(`${key}=${r.text}${comment}`);
@@ -396,7 +399,7 @@
       if (quotaHit) {
         log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Se alcanzó el límite diario de MyMemory. ${failed} línea(s) quedaron sin traducir (con el texto original). Intenta de nuevo más tarde.</span>`;
       } else if (failed > 0) {
-        log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Listo, pero ${failed} línea(s) no se pudieron traducir y quedaron con el texto original.</span>`;
+        log.innerHTML = `<span class="text-amber-400 font-semibold">⚠ Listo, pero ${failed} línea(s) no se pudieron traducir y quedaron con el texto original. Ejemplos: <span class="font-mono">${failedKeys.join(', ')}</span></span>`;
       } else {
         log.innerHTML = '<span class="text-emerald-400 font-semibold">✔ Traducción completada. Ya puedes descargar tu pack (.ZIP).</span>';
       }
@@ -410,7 +413,39 @@
       btn.textContent = 'Volver a traducir y generar pack';
     }
 
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    // Intenta traducir la línea completa (con marcadores). Si el traductor daña los códigos,
+    // traduce por separado los trozos de texto que hay entre los códigos de formato.
     async function translateString(text, srcLang, targetLang) {
+      const r = await translateWhole(text, srcLang, targetLang);
+      if (r.ok) return r;
+
+      const segs = text.split(/(§.|%(?:\d+\$)?[sdif]|%%|\\n|\{\d+\})/);
+      if (segs.length < 3) return r;
+
+      let allOk = true, fresh = false, engine = 'cache';
+      const out = [];
+      for (let i = 0; i < segs.length; i++) {
+        const s = segs[i];
+        if (i % 2 === 1 || !s.trim()) { out.push(s); continue; }
+        const lead = s.match(/^\s*/)[0];
+        const trail = s.match(/\s*$/)[0];
+        const sr = await translateWhole(s.trim(), srcLang, targetLang);
+        if (!sr.ok) allOk = false;
+        if (sr.fresh) { fresh = true; await sleep(200); }
+        if (sr.engine === 'remote') engine = 'remote';
+        else if (sr.engine === 'local' && engine !== 'remote') engine = 'local';
+        out.push(lead + sr.text + trail);
+      }
+      if (!allOk) return r;
+
+      const joined = out.join('');
+      cache.set(`${srcLang}|${targetLang}|${text}`, joined);
+      return { text: joined, ok: true, fresh, engine };
+    }
+
+    async function translateWhole(text, srcLang, targetLang) {
       const cacheKey = `${srcLang}|${targetLang}|${text}`;
       if (cache.has(cacheKey)) return { text: cache.get(cacheKey), ok: true, fresh: false, engine: 'cache' };
 
