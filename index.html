@@ -203,11 +203,8 @@
               <option value="rp">Solo Resource Pack</option>
             </select>
           </label>
-          <label class="space-y-1"><span class="text-[11px] text-slate-500">Formato del manifest</span>
-            <select id="pbFmt" class="field w-full rounded-lg px-3 py-2 text-xs text-slate-200">
-              <option value="3">V3 (versiones como texto)</option>
-              <option value="2">V2 (versiones como lista)</option>
-            </select>
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">format_version (2 = lista, 3+ = texto)</span>
+            <input type="text" id="pbFmt" value="3" inputmode="numeric" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200">
           </label>
         </div>
         <input type="text" id="pbName" placeholder="Nombre del pack" class="field w-full rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600">
@@ -233,24 +230,15 @@
           <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbUi" class="accent-emerald-500"> @minecraft/server-ui</label>
           <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbEval" class="accent-emerald-500"> script_eval</label>
         </div>
-        <div class="grid grid-cols-3 gap-2">
-          <label class="space-y-1"><span class="text-[11px] text-slate-500">Canal</span>
-            <select id="pbChannel" class="field w-full rounded-lg px-2 py-2 text-xs text-slate-200">
-              <option value="stable">Estable</option>
-              <option value="beta">Beta</option>
-            </select>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Versión de @minecraft/server</span>
+            <input type="text" id="pbVerServer" value="2.11.0" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200">
           </label>
-          <label class="space-y-1"><span class="text-[11px] text-slate-500">server</span>
-            <input type="text" id="pbVerServer" value="2.11.0" class="field w-full rounded-lg px-2 py-2 text-xs font-mono text-slate-200">
-          </label>
-          <label class="space-y-1"><span class="text-[11px] text-slate-500">server-ui</span>
-            <input type="text" id="pbVerUi" value="2.3.0" class="field w-full rounded-lg px-2 py-2 text-xs font-mono text-slate-200">
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Versión de @minecraft/server-ui</span>
+            <input type="text" id="pbVerUi" value="2.3.0" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200">
           </label>
         </div>
-        <div class="flex items-center justify-between gap-2">
-          <p id="pbVerStatus" class="text-[11px] text-slate-500"></p>
-          <button onclick="loadVersions(true)" class="shrink-0 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium transition-colors">Actualizar versiones</button>
-        </div>
+        <p class="text-[11px] text-slate-500">Escribe las versiones que quieras usar. Si pones una beta (por ejemplo <span class="font-mono text-slate-400">2.12.0-beta</span>) te avisaré que requiere experimentos.</p>
       </section>
 
       <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
@@ -390,7 +378,6 @@
       mm.addEventListener('input', () => { try { localStorage.setItem('mmEmail', mm.value.trim()); } catch (e) {} });
 
       generateUuids();
-      initBuilder();
       updateLangCount();
     };
 
@@ -709,60 +696,13 @@
     // PACK BUILDER
     // =====================================================
     const LATEST_GAME = '1.26.60';
-    const FALLBACK_VERS = { server: '2.11.0', ui: '2.3.0' };
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
     const SEMVER_RE = /^\d+\.\d+\.\d+$/;
     const MAIN_JS = `// Punto de entrada de tu script (scripts/main.js).
 // Los módulos que importes deben estar declarados como dependencias en manifest.json.
 import { world, system } from "@minecraft/server";
 `;
-    let npmVers = null;
     let built = null;
-
-    function initBuilder() {
-      ['pbVerServer', 'pbVerUi'].forEach(id => byId(id).addEventListener('input', e => { e.target.dataset.edited = '1'; }));
-      byId('pbChannel').addEventListener('change', () => applyVersions(true));
-      loadVersions(false);
-    }
-
-    async function fetchTags(pkg) {
-      const r = await fetch(`https://registry.npmjs.org/-/package/${pkg.replace('/', '%2F')}/dist-tags`);
-      if (!r.ok) throw new Error('npm ' + r.status);
-      return r.json();
-    }
-
-    async function loadVersions(force) {
-      const st = byId('pbVerStatus');
-      st.textContent = 'Consultando npm…';
-      try {
-        const [s, u] = await Promise.all([fetchTags('@minecraft/server'), fetchTags('@minecraft/server-ui')]);
-        const stable = t => (t.latest && !t.latest.includes('-')) ? t.latest : null;
-        const beta = t => t.beta ? t.beta.replace(/-beta.*$/, '-beta') : null;
-        npmVers = { server: { stable: stable(s), beta: beta(s) }, ui: { stable: stable(u), beta: beta(u) } };
-        applyVersions(force);
-        const ch = byId('pbChannel').value;
-        const gotBoth = npmVers.server[ch] && npmVers.ui[ch];
-        st.textContent = gotBoth
-          ? `Versiones leídas de npm (${ch === 'stable' ? 'estable' : 'beta'}): server ${byId('pbVerServer').value}, server-ui ${byId('pbVerUi').value}.`
-          : `npm no devolvió una versión ${ch === 'stable' ? 'estable' : 'beta'} clara; se dejaron los valores de respaldo (server ${byId('pbVerServer').value}, server-ui ${byId('pbVerUi').value}). Puedes editarlos a mano.`;
-      } catch (e) {
-        npmVers = null;
-        applyVersions(force);
-        st.textContent = `No se pudo leer npm; usando valores de respaldo (server ${FALLBACK_VERS.server}, server-ui ${FALLBACK_VERS.ui}). Puedes editarlos a mano.`;
-      }
-    }
-
-    function applyVersions(force) {
-      const ch = byId('pbChannel').value;
-      const map = { pbVerServer: 'server', pbVerUi: 'ui' };
-      for (const [id, k] of Object.entries(map)) {
-        const el = byId(id);
-        if (!force && el.dataset.edited) continue;
-        const v = npmVers ? npmVers[k][ch] : null;
-        if (v) { el.value = v; el.dataset.edited = ''; }
-        else if (force && ch === 'stable') { el.value = FALLBACK_VERS[k]; el.dataset.edited = ''; }
-      }
-    }
 
     function resetPackUuids() {
       ['pbUuidBp', 'pbUuidBpData', 'pbUuidBpScript', 'pbUuidRp', 'pbUuidRpMod'].forEach(id => { byId(id).value = ''; });
@@ -776,7 +716,8 @@ import { world, system } from "@minecraft/server";
     function buildManifests() {
       const errors = [], warnings = [];
       const type = byId('pbType').value;
-      const fv = parseInt(byId('pbFmt').value, 10);
+      const fvRaw = byId('pbFmt').value.trim();
+      const fv = /^\d+$/.test(fvRaw) ? parseInt(fvRaw, 10) : NaN;
       const name = byId('pbName').value.trim();
       const desc = byId('pbDesc').value.trim();
       const author = byId('pbAuthor').value.trim();
@@ -793,7 +734,8 @@ import { world, system } from "@minecraft/server";
       if (!name) errors.push('Escribe un nombre para el pack.');
       if (!SEMVER_RE.test(ver)) errors.push('La versión del pack debe tener formato 1.0.0.');
       if (!SEMVER_RE.test(eng)) errors.push(`La versión mínima del motor debe tener formato ${LATEST_GAME}.`);
-      if (fv === 3 && !author) errors.push('En manifest V3 el autor es obligatorio por ahora (según la documentación de Microsoft).');
+      if (!Number.isInteger(fv) || fv < 2) errors.push('format_version debe ser un número entero de 2 en adelante (los packs de comportamiento y recursos usan 2 o 3).');
+      if (fv >= 3 && !author) errors.push('Con format_version 3 o superior el autor es obligatorio por ahora (según la documentación de Microsoft).');
       if (scripts && !sv) errors.push('Falta la versión de @minecraft/server.');
       if (ui && !uv) errors.push('Falta la versión de @minecraft/server-ui.');
       if (errors.length) return { errors, warnings };
@@ -826,7 +768,8 @@ import { world, system } from "@minecraft/server";
         warnings.push('Los scripts solo van en el Behavior Pack; se ignoraron en este Resource Pack.');
       }
 
-      const vv = s => fv === 3 ? s : s.split('.').map(Number);
+      if (fv > 3) warnings.push(`format_version ${fv} no está documentado todavía; si Minecraft no carga el pack, prueba con 3 o 2.`);
+      const vv = s => fv >= 3 ? s : s.split('.').map(Number);
       const meta = pt => {
         const m = {};
         if (author) m.authors = [author];
