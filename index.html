@@ -15,7 +15,7 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen p-3 flex flex-col items-center justify-start font-sans">
   <div class="w-full max-w-xl bg-slate-800/90 backdrop-blur rounded-2xl p-5 shadow-2xl border border-slate-700 space-y-5 my-auto">
     
-    <!-- ENCABEZADO DE PRESENTACIÓN ACTUALIZADO -->
+    <!-- ENCABEZADO DE PRESENTACIÓN -->
     <header class="text-center space-y-1.5 border-b border-slate-700/60 pb-4">
       <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Bedrock Lang Studio</h1>
       <p class="text-xs text-slate-400">Traductor Masivo de Localización (.lang) por <span class="text-emerald-300 font-semibold">ZianCraft0</span></p>
@@ -98,8 +98,10 @@
         </div>
 
         <textarea id="outputContent" readonly class="w-full h-32 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-emerald-400 resize-none leading-relaxed"></textarea>
-        <div id="statusLog" class="text-[10px] font-mono text-slate-400 space-y-0.5"></div>
       </div>
+
+      <!-- LOG DE PROGRESO -->
+      <div id="statusLog" class="text-[10px] font-mono text-slate-400 space-y-0.5"></div>
     </div>
 
     <!-- MÓDULO 2: GENERADOR RÁPIDO DE LLAVES -->
@@ -208,12 +210,14 @@
       const ns = document.getElementById('globalNamespace').value.trim() || 'zclegacy';
       const btn = document.getElementById('translateBtn');
       const log = document.getElementById('statusLog');
+      
+      document.getElementById('resultsContainer').classList.add('hidden');
+
       btn.disabled = true;
       btn.classList.add('opacity-50');
-      btn.textContent = '⏳ Traduciendo... Espere por favor...';
+      btn.textContent = '⏳ Traduciendo idiomas... Por favor espere';
       
-      document.getElementById('resultsContainer').classList.remove('hidden');
-      log.innerHTML = '<p class="text-yellow-400">Iniciando motor de traducción...</p>';
+      log.innerHTML = '<p class="text-yellow-400">Iniciando motor de traducción global...</p>';
       
       translatedResults = {};
       const lines = rawText.split('\n');
@@ -239,7 +243,8 @@
             key = key.replace(/\.zclegacy\./g, `.${ns}.`);
           }
 
-          if (targetLang === 'es') {
+          // Si el idioma destino es español pero el código es diferente (ej. es_ES desde es_MX), permitimos procesar o copiar según corresponda
+          if (targetLang === 'es' && langCode.toLowerCase().startsWith('es')) {
             translatedLines.push(`${key}=${val}`);
             continue;
           }
@@ -247,6 +252,8 @@
           try {
             const translatedText = await translateString(val, targetLang);
             translatedLines.push(`${key}=${translatedText}`);
+            // Pausa breve de 150ms para evitar saturar la API pública
+            await new Promise(r => setTimeout(r, 150));
           } catch (e) {
             translatedLines.push(`${key}=${val}`);
           }
@@ -259,11 +266,13 @@
       selector.innerHTML = Object.keys(translatedResults).map(code => `<option value="${code}">${code}.lang</option>`).join('');
       
       displaySelectedTranslation();
-      log.innerHTML += '<p class="text-emerald-400 font-bold">✔ ¡Proceso finalizado con éxito!</p>';
+      
+      document.getElementById('resultsContainer').classList.remove('hidden');
+      log.innerHTML = '<p class="text-emerald-400 font-bold">✔ ¡Traducción completada con éxito! Ya puedes descargar tu pack (.ZIP).</p>';
       
       btn.disabled = false;
       btn.classList.remove('opacity-50');
-      btn.innerHTML = '<span>🌐 Traducir y Generar Pack (.ZIP)</span>';
+      btn.innerHTML = '<span>🌐 Volver a Traducir y Generar Pack (.ZIP)</span>';
     }
 
     async function translateString(text, targetLang) {
