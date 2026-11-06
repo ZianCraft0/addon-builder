@@ -69,9 +69,11 @@
     </header>
 
     <!-- PESTAÑAS -->
-    <nav class="card rounded-xl p-1 grid grid-cols-2 gap-1">
-      <button id="tab-translator" onclick="switchView('translator')" class="tab-active rounded-lg py-2.5 text-sm font-semibold transition-all">🌐 Traductor masivo</button>
-      <button id="tab-generator" onclick="switchView('generator')" class="tab-idle rounded-lg py-2.5 text-sm font-semibold transition-all">⚙️ Generador de llaves</button>
+    <nav class="card rounded-xl p-1 grid grid-cols-2 sm:grid-cols-4 gap-1">
+      <button id="tab-translator" onclick="switchView('translator')" class="tab-active rounded-lg py-2.5 text-sm font-semibold transition-all">🌐 Traductor</button>
+      <button id="tab-generator" onclick="switchView('generator')" class="tab-idle rounded-lg py-2.5 text-sm font-semibold transition-all">⚙️ Llaves</button>
+      <button id="tab-uuid" onclick="switchView('uuid')" class="tab-idle rounded-lg py-2.5 text-sm font-semibold transition-all">🔑 UUID</button>
+      <button id="tab-builder" onclick="switchView('builder')" class="tab-idle rounded-lg py-2.5 text-sm font-semibold transition-all">📦 Pack Builder</button>
     </nav>
 
     <!-- MÓDULO 1: TRADUCTOR -->
@@ -168,6 +170,123 @@
         <h2 class="text-sm font-semibold">Llaves generadas</h2>
         <textarea id="genOutput" readonly class="field scroll w-full h-32 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none leading-relaxed"></textarea>
         <button onclick="copyGenOutput()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-2.5 rounded-lg font-semibold transition-colors">Copiar al portapapeles</button>
+      </section>
+    </main>
+
+    <!-- MÓDULO 3: UUID -->
+    <main id="view-uuid" class="hidden space-y-4">
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold">Generador de UUID (v4)</h2>
+        <div class="grid grid-cols-2 gap-2 items-center">
+          <div class="flex items-center gap-2">
+            <label for="uuidCount" class="text-xs text-slate-400">Cantidad</label>
+            <input type="number" id="uuidCount" min="1" max="50" value="4" class="field rounded-lg px-3 py-2 text-xs w-20 text-center font-mono text-slate-200">
+          </div>
+          <button onclick="generateUuids()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs shadow transition-colors">Generar</button>
+        </div>
+        <textarea id="uuidOutput" readonly class="field scroll w-full h-40 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none leading-relaxed"></textarea>
+        <button onclick="copyUuids()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-2.5 rounded-lg font-semibold transition-colors">Copiar</button>
+        <p class="text-[11px] text-slate-500">Cada header y cada módulo de un manifest necesita un UUID distinto.</p>
+      </section>
+    </main>
+
+    <!-- MÓDULO 4: PACK BUILDER -->
+    <main id="view-builder" class="hidden space-y-4">
+
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold flex items-center gap-2"><span class="step-dot">1</span> Datos del pack</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Tipo</span>
+            <select id="pbType" class="field w-full rounded-lg px-3 py-2 text-xs text-slate-200">
+              <option value="addon">Add-on (BP + RP)</option>
+              <option value="bp">Solo Behavior Pack</option>
+              <option value="rp">Solo Resource Pack</option>
+            </select>
+          </label>
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Formato del manifest</span>
+            <select id="pbFmt" class="field w-full rounded-lg px-3 py-2 text-xs text-slate-200">
+              <option value="3">V3 (versiones como texto)</option>
+              <option value="2">V2 (versiones como lista)</option>
+            </select>
+          </label>
+        </div>
+        <input type="text" id="pbName" placeholder="Nombre del pack" class="field w-full rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600">
+        <input type="text" id="pbDesc" placeholder="Descripción" class="field w-full rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="pbAuthor" placeholder="Autor" class="field rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600">
+          <input type="text" id="pbLicense" value="ARR" placeholder="Licencia" class="field rounded-lg px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Versión del pack</span>
+            <input type="text" id="pbVersion" value="1.0.0" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200">
+          </label>
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Versión mínima del motor</span>
+            <input type="text" id="pbEngine" value="1.26.60" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200">
+          </label>
+        </div>
+      </section>
+
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold flex items-center gap-2"><span class="step-dot">2</span> Scripts (solo en el BP)</h2>
+        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbScripts" class="accent-emerald-500"> Incluir módulo de scripting</label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbUi" class="accent-emerald-500"> @minecraft/server-ui</label>
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbEval" class="accent-emerald-500"> script_eval</label>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">Canal</span>
+            <select id="pbChannel" class="field w-full rounded-lg px-2 py-2 text-xs text-slate-200">
+              <option value="stable">Estable</option>
+              <option value="beta">Beta</option>
+            </select>
+          </label>
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">server</span>
+            <input type="text" id="pbVerServer" value="2.11.0" class="field w-full rounded-lg px-2 py-2 text-xs font-mono text-slate-200">
+          </label>
+          <label class="space-y-1"><span class="text-[11px] text-slate-500">server-ui</span>
+            <input type="text" id="pbVerUi" value="2.3.0" class="field w-full rounded-lg px-2 py-2 text-xs font-mono text-slate-200">
+          </label>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <p id="pbVerStatus" class="text-[11px] text-slate-500"></p>
+          <button onclick="loadVersions(true)" class="shrink-0 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium transition-colors">Actualizar versiones</button>
+        </div>
+      </section>
+
+      <section class="card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold flex items-center gap-2"><span class="step-dot">3</span> Extras</h2>
+        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbPbr" class="accent-emerald-500"> PBR / Vibrant Visuals (capability <span class="font-mono">pbr</span>, solo en el RP)</label>
+        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="pbLangs" class="accent-emerald-500"> Incluir los .lang traducidos en la pestaña Traductor</label>
+        <label class="space-y-1 block"><span class="text-[11px] text-slate-500">Icono del pack (PNG, opcional; si no, se genera uno)</span>
+          <input type="file" id="pbIcon" accept="image/png" class="block w-full text-xs text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:text-slate-200">
+        </label>
+        <details class="text-xs text-slate-400">
+          <summary class="cursor-pointer text-slate-300 font-medium">UUID (opcional: vacío = se generan solos)</summary>
+          <div class="space-y-2 pt-2">
+            <input type="text" id="pbUuidBp" data-label="BP header" placeholder="BP header" class="field w-full rounded-lg px-3 py-2 text-[11px] font-mono text-slate-200 placeholder:text-slate-600">
+            <input type="text" id="pbUuidBpData" data-label="BP módulo data" placeholder="BP módulo data" class="field w-full rounded-lg px-3 py-2 text-[11px] font-mono text-slate-200 placeholder:text-slate-600">
+            <input type="text" id="pbUuidBpScript" data-label="BP módulo script" placeholder="BP módulo script" class="field w-full rounded-lg px-3 py-2 text-[11px] font-mono text-slate-200 placeholder:text-slate-600">
+            <input type="text" id="pbUuidRp" data-label="RP header" placeholder="RP header" class="field w-full rounded-lg px-3 py-2 text-[11px] font-mono text-slate-200 placeholder:text-slate-600">
+            <input type="text" id="pbUuidRpMod" data-label="RP módulo recursos" placeholder="RP módulo recursos" class="field w-full rounded-lg px-3 py-2 text-[11px] font-mono text-slate-200 placeholder:text-slate-600">
+            <button onclick="resetPackUuids()" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium">Borrar y generar nuevos</button>
+            <p class="text-[11px] text-slate-500">Para actualizar un pack que ya publicaste, conserva los mismos UUID y sube la versión.</p>
+          </div>
+        </details>
+      </section>
+
+      <button onclick="generateManifests()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition-all">Generar manifest</button>
+
+      <ul id="pbMessages" class="text-[11px] font-mono space-y-1"></ul>
+
+      <section id="pbResults" class="hidden card rounded-2xl p-4 sm:p-5 space-y-3">
+        <h2 class="text-sm font-semibold">Resultado</h2>
+        <select id="pbPreviewSel" onchange="showManifest()" class="field w-full rounded-lg px-3 py-2 text-xs font-mono text-slate-200"></select>
+        <textarea id="pbPreview" readonly class="field scroll w-full h-56 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none leading-relaxed"></textarea>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button id="dlAddon" onclick="downloadPack('addon')" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs py-2.5 rounded-lg font-bold shadow transition-colors">Descargar .mcaddon</button>
+          <button id="dlBp" onclick="downloadPack('bp')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-2.5 rounded-lg font-semibold transition-colors">Descargar BP (.mcpack)</button>
+          <button id="dlRp" onclick="downloadPack('rp')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-2.5 rounded-lg font-semibold transition-colors">Descargar RP (.mcpack)</button>
+        </div>
       </section>
     </main>
 
@@ -269,16 +388,19 @@
       const mm = document.getElementById('mmEmail');
       try { mm.value = localStorage.getItem('mmEmail') || ''; } catch (e) {}
       mm.addEventListener('input', () => { try { localStorage.setItem('mmEmail', mm.value.trim()); } catch (e) {} });
+
+      generateUuids();
+      initBuilder();
       updateLangCount();
     };
 
+    const VIEWS = ['translator', 'generator', 'uuid', 'builder'];
+
     function switchView(view) {
-      document.getElementById('view-translator').classList.toggle('hidden', view !== 'translator');
-      document.getElementById('view-generator').classList.toggle('hidden', view !== 'generator');
-      const tabT = document.getElementById('tab-translator');
-      const tabG = document.getElementById('tab-generator');
-      tabT.className = (view === 'translator' ? 'tab-active' : 'tab-idle') + ' rounded-lg py-2.5 text-sm font-semibold transition-all';
-      tabG.className = (view === 'generator' ? 'tab-active' : 'tab-idle') + ' rounded-lg py-2.5 text-sm font-semibold transition-all';
+      VIEWS.forEach(v => {
+        document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
+        document.getElementById('tab-' + v).className = (v === view ? 'tab-active' : 'tab-idle') + ' rounded-lg py-2.5 text-sm font-semibold transition-all';
+      });
     }
 
     function toggleAllLanguages() {
@@ -557,6 +679,278 @@
     function copyGenOutput() {
       navigator.clipboard.writeText(document.getElementById('genOutput').value);
       showToast('Llaves copiadas');
+    }
+
+    // =====================================================
+    // UUID
+    // =====================================================
+    const byId = id => document.getElementById(id);
+
+    function uuidv4() {
+      if (self.crypto && crypto.randomUUID) return crypto.randomUUID();
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40;
+      b[8] = (b[8] & 0x3f) | 0x80;
+      const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+      return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    }
+
+    function generateUuids() {
+      const n = Math.min(50, Math.max(1, parseInt(byId('uuidCount').value, 10) || 1));
+      byId('uuidOutput').value = Array.from({ length: n }, () => uuidv4()).join('\n');
+    }
+
+    function copyUuids() {
+      navigator.clipboard.writeText(byId('uuidOutput').value);
+      showToast('UUID copiados');
+    }
+
+    // =====================================================
+    // PACK BUILDER
+    // =====================================================
+    const LATEST_GAME = '1.26.60';
+    const FALLBACK_VERS = { server: '2.11.0', ui: '2.3.0' };
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    const SEMVER_RE = /^\d+\.\d+\.\d+$/;
+    const MAIN_JS = `// Punto de entrada de tu script (scripts/main.js).
+// Los módulos que importes deben estar declarados como dependencias en manifest.json.
+import { world, system } from "@minecraft/server";
+`;
+    let npmVers = null;
+    let built = null;
+
+    function initBuilder() {
+      ['pbVerServer', 'pbVerUi'].forEach(id => byId(id).addEventListener('input', e => { e.target.dataset.edited = '1'; }));
+      byId('pbChannel').addEventListener('change', () => applyVersions(true));
+      loadVersions(false);
+    }
+
+    async function fetchTags(pkg) {
+      const r = await fetch(`https://registry.npmjs.org/-/package/${pkg.replace('/', '%2F')}/dist-tags`);
+      if (!r.ok) throw new Error('npm ' + r.status);
+      return r.json();
+    }
+
+    async function loadVersions(force) {
+      const st = byId('pbVerStatus');
+      st.textContent = 'Consultando npm…';
+      try {
+        const [s, u] = await Promise.all([fetchTags('@minecraft/server'), fetchTags('@minecraft/server-ui')]);
+        const stable = t => (t.latest && !t.latest.includes('-')) ? t.latest : null;
+        const beta = t => t.beta ? t.beta.replace(/-beta.*$/, '-beta') : null;
+        npmVers = { server: { stable: stable(s), beta: beta(s) }, ui: { stable: stable(u), beta: beta(u) } };
+        applyVersions(force);
+        const ch = byId('pbChannel').value;
+        const gotBoth = npmVers.server[ch] && npmVers.ui[ch];
+        st.textContent = gotBoth
+          ? `Versiones leídas de npm (${ch === 'stable' ? 'estable' : 'beta'}): server ${byId('pbVerServer').value}, server-ui ${byId('pbVerUi').value}.`
+          : `npm no devolvió una versión ${ch === 'stable' ? 'estable' : 'beta'} clara; se dejaron los valores de respaldo (server ${byId('pbVerServer').value}, server-ui ${byId('pbVerUi').value}). Puedes editarlos a mano.`;
+      } catch (e) {
+        npmVers = null;
+        applyVersions(force);
+        st.textContent = `No se pudo leer npm; usando valores de respaldo (server ${FALLBACK_VERS.server}, server-ui ${FALLBACK_VERS.ui}). Puedes editarlos a mano.`;
+      }
+    }
+
+    function applyVersions(force) {
+      const ch = byId('pbChannel').value;
+      const map = { pbVerServer: 'server', pbVerUi: 'ui' };
+      for (const [id, k] of Object.entries(map)) {
+        const el = byId(id);
+        if (!force && el.dataset.edited) continue;
+        const v = npmVers ? npmVers[k][ch] : null;
+        if (v) { el.value = v; el.dataset.edited = ''; }
+        else if (force && ch === 'stable') { el.value = FALLBACK_VERS[k]; el.dataset.edited = ''; }
+      }
+    }
+
+    function resetPackUuids() {
+      ['pbUuidBp', 'pbUuidBpData', 'pbUuidBpScript', 'pbUuidRp', 'pbUuidRpMod'].forEach(id => { byId(id).value = ''; });
+      showToast('UUID borrados; se generarán nuevos');
+    }
+
+    function packSlug(name) {
+      return name.replace(/§./g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'mi_pack';
+    }
+
+    function buildManifests() {
+      const errors = [], warnings = [];
+      const type = byId('pbType').value;
+      const fv = parseInt(byId('pbFmt').value, 10);
+      const name = byId('pbName').value.trim();
+      const desc = byId('pbDesc').value.trim();
+      const author = byId('pbAuthor').value.trim();
+      const license = byId('pbLicense').value.trim();
+      const ver = byId('pbVersion').value.trim();
+      const eng = byId('pbEngine').value.trim();
+      const hasBP = type !== 'rp';
+      const hasRP = type !== 'bp';
+      const scripts = hasBP && byId('pbScripts').checked;
+      const ui = scripts && byId('pbUi').checked;
+      const sv = byId('pbVerServer').value.trim();
+      const uv = byId('pbVerUi').value.trim();
+
+      if (!name) errors.push('Escribe un nombre para el pack.');
+      if (!SEMVER_RE.test(ver)) errors.push('La versión del pack debe tener formato 1.0.0.');
+      if (!SEMVER_RE.test(eng)) errors.push(`La versión mínima del motor debe tener formato ${LATEST_GAME}.`);
+      if (fv === 3 && !author) errors.push('En manifest V3 el autor es obligatorio por ahora (según la documentación de Microsoft).');
+      if (scripts && !sv) errors.push('Falta la versión de @minecraft/server.');
+      if (ui && !uv) errors.push('Falta la versión de @minecraft/server-ui.');
+      if (errors.length) return { errors, warnings };
+
+      const need = [];
+      if (hasBP) { need.push('pbUuidBp', 'pbUuidBpData'); if (scripts) need.push('pbUuidBpScript'); }
+      if (hasRP) need.push('pbUuidRp', 'pbUuidRpMod');
+      const uuids = {};
+      for (const id of need) {
+        const el = byId(id);
+        let v = el.value.trim().toLowerCase();
+        if (!v) { v = uuidv4(); el.value = v; }
+        if (!UUID_RE.test(v)) errors.push(`UUID inválido en "${el.dataset.label}".`);
+        uuids[id] = v;
+      }
+      const vals = Object.values(uuids);
+      if (new Set(vals).size !== vals.length) errors.push('Hay UUID repetidos: cada header y cada módulo necesita uno distinto.');
+      if (errors.length) return { errors, warnings };
+
+      if (scripts && (/-beta/.test(sv) || (ui && /-beta/.test(uv)))) {
+        warnings.push('Usas módulos beta: requieren activar los experimentos en el mundo y pueden romperse en cada versión mayor del juego.');
+      }
+      if (hasRP && byId('pbPbr').checked) {
+        warnings.push('PBR: agrega tus texture sets en textures/ (mapas de metalicidad/emisión/rugosidad y normales) para que Vibrant Visuals se note.');
+      }
+      if (byId('pbLangs').checked && Object.keys(translatedResults).length === 0) {
+        warnings.push('Todavía no hay traducciones generadas en la pestaña Traductor; el pack saldrá sin archivos .lang.');
+      }
+      if (type === 'rp' && byId('pbScripts').checked) {
+        warnings.push('Los scripts solo van en el Behavior Pack; se ignoraron en este Resource Pack.');
+      }
+
+      const vv = s => fv === 3 ? s : s.split('.').map(Number);
+      const meta = pt => {
+        const m = {};
+        if (author) m.authors = [author];
+        if (license) m.license = license;
+        if (pt) m.product_type = pt;
+        return Object.keys(m).length ? m : null;
+      };
+
+      let bp = null, rp = null;
+      if (hasBP) {
+        bp = {
+          format_version: fv,
+          header: { name: type === 'addon' ? `${name} (BP)` : name, description: desc, uuid: uuids.pbUuidBp, version: vv(ver), min_engine_version: vv(eng) }
+        };
+        if (scripts && byId('pbEval').checked) bp.capabilities = ['script_eval'];
+        bp.modules = [{ description: 'Módulo de comportamiento (Behavior)', type: 'data', uuid: uuids.pbUuidBpData, version: vv(ver) }];
+        if (scripts) {
+          bp.modules.push({ description: 'Módulo de scripting (API)', language: 'javascript', type: 'script', uuid: uuids.pbUuidBpScript, version: vv(ver), entry: 'scripts/main.js' });
+          bp.dependencies = [{ module_name: '@minecraft/server', version: sv }];
+          if (ui) bp.dependencies.push({ module_name: '@minecraft/server-ui', version: uv });
+        }
+        const m = meta(type === 'addon' ? 'addon' : null);
+        if (m) bp.metadata = m;
+      }
+      if (hasRP) {
+        rp = {
+          format_version: fv,
+          header: { name: type === 'addon' ? `${name} (RP)` : name, description: desc, uuid: uuids.pbUuidRp, version: vv(ver), min_engine_version: vv(eng) }
+        };
+        if (byId('pbPbr').checked) rp.capabilities = ['pbr'];
+        rp.modules = [{ description: 'Módulo de recursos visuales', type: 'resources', uuid: uuids.pbUuidRpMod, version: vv(ver) }];
+        if (type === 'addon') rp.dependencies = [{ uuid: uuids.pbUuidBp, version: vv(ver) }];
+        const m = meta(null);
+        if (m) rp.metadata = m;
+      }
+
+      return { errors, warnings, bp, rp, type, scripts, slug: packSlug(name), name };
+    }
+
+    function generateManifests() {
+      const r = buildManifests();
+      built = r;
+      const box = byId('pbMessages');
+      box.innerHTML = '';
+      const add = (txt, cls) => { const li = document.createElement('li'); li.className = cls; li.textContent = txt; box.appendChild(li); };
+      r.errors.forEach(e => add('✖ ' + e, 'text-red-400'));
+      r.warnings.forEach(w => add('⚠ ' + w, 'text-amber-400'));
+
+      const res = byId('pbResults');
+      if (r.errors.length) { res.classList.add('hidden'); return; }
+      res.classList.remove('hidden');
+
+      const sel = byId('pbPreviewSel');
+      sel.innerHTML = '';
+      if (r.bp) sel.innerHTML += '<option value="bp">manifest.json (BP)</option>';
+      if (r.rp) sel.innerHTML += '<option value="rp">manifest.json (RP)</option>';
+      showManifest();
+
+      byId('dlAddon').classList.toggle('hidden', r.type !== 'addon');
+      byId('dlBp').classList.toggle('hidden', !r.bp);
+      byId('dlRp').classList.toggle('hidden', !r.rp);
+    }
+
+    function showManifest() {
+      if (!built || built.errors.length) return;
+      const m = byId('pbPreviewSel').value === 'rp' ? built.rp : built.bp;
+      byId('pbPreview').value = JSON.stringify(m, null, 2);
+    }
+
+    async function getIconBlob(name) {
+      const f = byId('pbIcon').files[0];
+      if (f) return f;
+      const c = document.createElement('canvas');
+      c.width = c.height = 256;
+      const ctx = c.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, 256, 256);
+      g.addColorStop(0, '#34d399');
+      g.addColorStop(1, '#047857');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 256, 256);
+      const initials = name.replace(/§./g, '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'P';
+      ctx.fillStyle = '#04130d';
+      ctx.font = 'bold 120px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initials, 128, 136);
+      return await new Promise(res => c.toBlob(res, 'image/png'));
+    }
+
+    function populatePack(folder, kind, icon) {
+      const m = kind === 'rp' ? built.rp : built.bp;
+      folder.file('manifest.json', JSON.stringify(m, null, 2));
+      folder.file('pack_icon.png', icon);
+      if (kind === 'bp' && built.scripts) folder.file('scripts/main.js', MAIN_JS);
+      if (kind === 'rp') folder.folder('textures');
+
+      // Los .lang del traductor van al RP si existe, y si no al BP
+      const langTarget = built.rp ? 'rp' : 'bp';
+      const codes = Object.keys(translatedResults);
+      if (byId('pbLangs').checked && codes.length && kind === langTarget) {
+        for (const code of codes) folder.file(`texts/${code}.lang`, translatedResults[code]);
+        folder.file('texts/languages.json', JSON.stringify(codes, null, 2));
+      }
+    }
+
+    async function downloadPack(which) {
+      if (!built || built.errors.length) return;
+      const icon = await getIconBlob(built.name);
+      const zip = new JSZip();
+      let filename;
+      if (which === 'addon') {
+        populatePack(zip.folder(`${built.slug}_BP`), 'bp', icon);
+        populatePack(zip.folder(`${built.slug}_RP`), 'rp', icon);
+        filename = `${built.slug}.mcaddon`;
+      } else {
+        populatePack(zip, which, icon);
+        filename = `${built.slug}_${which.toUpperCase()}.mcpack`;
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     }
   </script>
 </body>
