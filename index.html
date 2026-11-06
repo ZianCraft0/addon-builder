@@ -21,7 +21,6 @@
   <style>
     .folder-toggle::before { content: "› "; display: inline-block; transition: transform 0.2s; font-weight: bold; }
     .folder-toggle.open::before { transform: rotate(90deg); }
-    /* Syntax editor overlay hack */
     .editor-container { position: relative; font-family: monospace; }
     .editor-container textarea, .editor-container pre {
       margin: 0; padding: 10px; border: 0; width: 100%; height: 100%;
@@ -33,19 +32,19 @@
       caret-color: #10b981; resize: none; outline: none; z-index: 1;
     }
     .editor-container pre { pointer-events: none; overflow: auto; }
-    .token.property { color: #34d399 !important; } /* Verde esmeralda para claves JSON */
+    .token.property { color: #34d399 !important; }
     .token.string { color: #a7f3d0 !important; }
     .token.number { color: #f59e0b !important; }
     .token.boolean { color: #60a5fa !important; }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-2 flex flex-col items-center justify-start font-sans">
-  <div class="w-full max-w-4xl bg-slate-800 rounded-2xl p-4 shadow-2xl border border-slate-700 space-y-4 my-auto">
+  <div class="w-full max-w-5xl bg-slate-800 rounded-2xl p-4 shadow-2xl border border-slate-700 space-y-4 my-auto">
     
     <header class="flex items-center justify-between border-b border-slate-700 pb-3">
       <div>
         <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">Zian Add-on Copilot</h1>
-        <p class="text-[10px] text-slate-400">IDE Móvil Organico & Auditor para Minecraft Bedrock</p>
+        <p class="text-[10px] text-slate-400">IDE Móvil Orgánico & Auditor para Minecraft Bedrock</p>
       </div>
       <button onclick="exportWorkspace()" id="exportBtn" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg transition-all">
         Exportar .mcpack / .zip
@@ -53,8 +52,9 @@
     </header>
 
     <!-- NAVEGACIÓN PRINCIPAL -->
-    <div class="grid grid-cols-5 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700/50 text-[11px] font-semibold">
+    <div class="grid grid-cols-6 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700/50 text-[11px] font-semibold">
       <button onclick="switchTab('editor')" id="btn-editor" class="py-2 rounded-lg bg-emerald-600 text-white transition-all">IDE Studio</button>
+      <button onclick="switchTab('preview')" id="btn-preview" class="py-2 rounded-lg text-slate-400 transition-all">Visor JSON</button>
       <button onclick="switchTab('audit')" id="btn-audit" class="py-2 rounded-lg text-slate-400 transition-all">Auditar</button>
       <button onclick="switchTab('lang')" id="btn-lang" class="py-2 rounded-lg text-slate-400 transition-all">Lang Tool</button>
       <button onclick="switchTab('manifest')" id="btn-manifest" class="py-2 rounded-lg text-slate-400 transition-all">Manifiesto</button>
@@ -72,16 +72,15 @@
       </div>
 
       <div id="workspaceView" class="hidden grid grid-cols-1 md:grid-cols-3 gap-3">
-        <!-- Explorador de Archivos estilo Spck -->
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 h-80 overflow-y-auto">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 h-80 flex flex-col space-y-2">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1">
             <span class="text-[11px] font-bold text-slate-400">EXPLORADOR</span>
             <span id="fileCountBadge" class="text-[9px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded">0 archivos</span>
           </div>
-          <div id="fileTreeContainer" class="text-xs font-mono select-none space-y-1"></div>
+          <input type="text" id="treeSearchInput" placeholder="Filtrar archivos..." oninput="renderTree()" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 focus:outline-none focus:border-emerald-500">
+          <div id="fileTreeContainer" class="text-xs font-mono select-none space-y-1 overflow-y-auto flex-grow"></div>
         </div>
 
-        <!-- Editor de Código con Syntax Highlighting -->
         <div class="md:col-span-2 bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col h-80 space-y-2">
           <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-1">
             <span id="activeFileName" class="font-mono text-emerald-400 font-bold truncate">Selecciona un archivo</span>
@@ -98,6 +97,20 @@
           <div class="flex justify-between items-center text-[10px]">
             <span class="text-slate-500">Formato: JSON / JS / LANG</span>
             <button onclick="formatCurrentJSON()" class="text-emerald-400 hover:underline font-semibold">Formatear JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÓDULO VISOR VISUAL (RECETAS Y LOOT TABLES) -->
+    <div id="tab-preview" class="hidden space-y-3">
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <h2 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Visualizador Gráfico de JSON</h2>
+        <p class="text-[10px] text-slate-400 mb-3">Muestra la rejilla de crafteo (3x3) para recetas formateadas o desglosa las probabilidades y contenedores de Loot Tables.</p>
+        
+        <div id="previewContent" class="space-y-4">
+          <div class="text-center text-xs text-slate-500 py-8 border border-dashed border-slate-800 rounded-lg">
+            Selecciona o edita un archivo de receta o loot_table en el IDE para visualizar sus componentes aquí.
           </div>
         </div>
       </div>
@@ -120,13 +133,16 @@
       </div>
     </div>
 
-    <!-- OTROS MÓDULOS -->
-    <div id="tab-audit" class="hidden space-y-4">
-      <div class="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center bg-slate-800/50">
-        <input type="file" id="addonFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
-        <p class="text-xs text-slate-200">Sube tu paquete para auditar sintaxis JSON rápida</p>
+    <!-- MÓDULO AUDITORÍA AVANZADA -->
+    <div id="tab-audit" class="hidden space-y-3">
+      <div class="border-2 border-dashed border-slate-600 hover:border-emerald-500 rounded-xl p-6 text-center bg-slate-800/50 relative cursor-pointer">
+        <input type="file" id="addonFile" accept=".zip,.mcpack,.mcaddon" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleDeepAudit(event)">
+        <div class="space-y-1">
+          <p class="text-xs text-slate-200">Subir Paquete para <span class="text-emerald-400 font-bold">Auditoría Avanzada</span></p>
+          <p class="text-[10px] text-slate-400">Valida sintaxis JSON/LANG, detecta UUIDs duplicados y componentes huérfanos</p>
+        </div>
       </div>
-      <div id="auditResults" class="hidden bg-slate-950 rounded-xl p-3 border border-slate-800 max-h-48 overflow-y-auto">
+      <div id="auditResults" class="hidden bg-slate-950 rounded-xl p-3 border border-slate-800 max-h-56 overflow-y-auto">
         <div id="auditLog" class="text-xs space-y-1 font-mono"></div>
       </div>
     </div>
@@ -166,7 +182,7 @@
     let activeFilePath = null;
 
     function switchTab(tab) {
-      ['editor', 'audit', 'lang', 'manifest', 'uuids'].forEach(t => {
+      ['editor', 'preview', 'audit', 'lang', 'manifest', 'uuids'].forEach(t => {
         const active = t === tab;
         document.getElementById(`tab-${t}`).classList.toggle('hidden', !active);
         document.getElementById(`btn-${t}`).className = `py-2 rounded-lg transition-all ${active ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`;
@@ -177,7 +193,6 @@
       return 'crypto' in window && 'randomUUID' in crypto ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
     }
 
-    // CARGA DE ADD-ON Y ÁRBOL ORGANICO
     async function loadAddonWorkspace(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -209,7 +224,7 @@
       let current = fileTreeData;
       parts.forEach((part, index) => {
         if (index === parts.length - 1) {
-          current[part] = path; // Archivo final
+          current[part] = path;
         } else {
           current[part] = current[part] || {};
           current = current[part];
@@ -218,22 +233,31 @@
     }
 
     function renderTree() {
+      const filter = (document.getElementById('treeSearchInput')?.value || '').toLowerCase();
       const container = document.getElementById('fileTreeContainer');
-      container.innerHTML = createTreeHTML(fileTreeData);
+      container.innerHTML = createTreeHTML(fileTreeData, '', filter);
     }
 
-    function createTreeHTML(node, path = '') {
+    function createTreeHTML(node, path = '', filter = '') {
       let html = '';
       for (const key in node) {
         if (typeof node[key] === 'object') {
-          html += `<div class="ml-2">
-            <div class="folder-toggle cursor-pointer text-emerald-400 font-semibold hover:text-emerald-300 py-0.5" onclick="toggleFolder(this)">${key}</div>
-            <div class="folder-content hidden border-l border-slate-700/50 pl-2">
-              ${createTreeHTML(node[key], path + key + '/')}
-            </div>
-          </div>`;
+          const innerHTML = createTreeHTML(node[key], path + key + '/', filter);
+          if (innerHTML.trim() !== '') {
+            const isOpen = filter !== '' ? 'open' : '';
+            const isHidden = filter !== '' ? '' : 'hidden';
+            html += `<div class="ml-2">
+              <div class="folder-toggle ${isOpen} cursor-pointer text-emerald-400 font-semibold hover:text-emerald-300 py-0.5" onclick="toggleFolder(this)">${key}</div>
+              <div class="folder-content ${isHidden} border-l border-slate-700/50 pl-2">
+                ${innerHTML}
+              </div>
+            </div>`;
+          }
         } else {
           const filePath = node[key];
+          if (filter && !key.toLowerCase().includes(filter) && !filePath.toLowerCase().includes(filter)) {
+            continue;
+          }
           const ext = key.split('.').pop();
           let icon = '📄';
           if (ext === 'json') icon = '⚙️';
@@ -254,13 +278,13 @@
       content.classList.toggle('hidden');
     }
 
-    // EDITOR & SYNTAX HIGHLIGHTING & DETECTOR DE ERRORES
     function openFileInEditor(path) {
       activeFilePath = path;
       document.getElementById('activeFileName').textContent = path;
       const content = currentZipFiles[path] || '';
       document.getElementById('codeEditor').value = content;
       updateEditorContent(content);
+      renderVisualPreview(path, content);
     }
 
     function updateEditorContent(val) {
@@ -293,6 +317,7 @@
       }
 
       Prism.highlightElement(codeEl);
+      if (activeFilePath) renderVisualPreview(activeFilePath, val);
     }
 
     function syncScroll(element) {
@@ -313,6 +338,88 @@
       }
     }
 
+    // VISUALIZADOR DE RECETAS DE CRAFTEO Y LOOT TABLES
+    function renderVisualPreview(path, text) {
+      const previewDiv = document.getElementById('previewContent');
+      if (!path.endsWith('.json')) {
+        previewDiv.innerHTML = '<div class="text-slate-500 text-xs text-center py-6">El archivo actual no es de tipo JSON.</div>';
+        return;
+      }
+
+      try {
+        const json = JSON.parse(text);
+
+        // Previsualizar receta con forma (Crafting Shaped)
+        if (json['minecraft:recipe_shaped']) {
+          const recipe = json['minecraft:recipe_shaped'];
+          const pattern = recipe.pattern || [];
+          const keyMap = recipe.key || {};
+          const result = recipe.result || [];
+          
+          let gridHTML = '<div class="grid grid-cols-3 gap-1.5 w-36 h-36 bg-slate-900 p-2 rounded-lg border border-slate-700 font-mono text-[9px] text-center">';
+          for (let r = 0; r < 3; r++) {
+            const rowStr = pattern[r] || '   ';
+            for (let c = 0; c < 3; c++) {
+              const char = rowStr[c] || ' ';
+              const itemObj = keyMap[char];
+              const itemId = typeof itemObj === 'string' ? itemObj : (itemObj?.item || 'Vacio');
+              const shortName = itemId.includes(':') ? itemId.split(':')[1] : itemId;
+              
+              gridHTML += `<div class="bg-slate-800 border border-slate-700/60 rounded flex items-center justify-center p-0.5 truncate text-emerald-300 ${char === ' ' ? 'opacity-20' : ''}" title="${itemId}">${char !== ' ' ? shortName : ''}</div>`;
+            }
+          }
+          gridHTML += '</div>';
+
+          let resultText = Array.isArray(result) 
+            ? result.map(i => `${i.item} (x${i.count || 1})`).join(', ') 
+            : (result.item || result);
+
+          previewDiv.innerHTML = `
+            <div class="flex flex-col md:flex-row items-center gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+              <div>
+                <span class="text-[10px] text-slate-400 block mb-1">Entrada (Patrón 3x3):</span>
+                ${gridHTML}
+              </div>
+              <div class="text-emerald-400 font-bold text-lg">➔</div>
+              <div class="bg-slate-900 p-3 rounded-lg border border-slate-700/80 text-xs font-mono">
+                <span class="text-[10px] text-slate-400 block mb-1">Resultado:</span>
+                <span class="text-emerald-400 font-bold">${resultText}</span>
+              </div>
+            </div>`;
+          return;
+        }
+
+        // Previsualizar Loot Table
+        if (json.pools) {
+          let poolsHTML = json.pools.map((pool, idx) => {
+            let entries = (pool.entries || []).map(entry => {
+              const name = entry.name || entry.type || 'Desconocido';
+              const weight = entry.weight || 1;
+              return `<li class="flex justify-between text-xs font-mono border-b border-slate-800/40 py-1">
+                <span class="text-slate-200">${name}</span>
+                <span class="text-emerald-400 font-semibold">Peso: ${weight}</span>
+              </li>`;
+            }).join('');
+
+            return `<div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-2">
+              <div class="flex justify-between text-xs font-bold text-slate-400 border-b border-slate-700 pb-1">
+                <span>Pool #${idx + 1}</span>
+                <span>Rolls: ${typeof pool.rolls === 'object' ? `${pool.rolls.min}-${pool.rolls.max}` : pool.rolls}</span>
+              </div>
+              <ul>${entries}</ul>
+            </div>`;
+          }).join('');
+
+          previewDiv.innerHTML = `<div class="space-y-3">${poolsHTML}</div>`;
+          return;
+        }
+
+        previewDiv.innerHTML = '<div class="text-slate-500 text-xs text-center py-6">Estructura JSON válida, pero no corresponde a una Receta Formateada o Loot Table reconocible.</div>';
+      } catch (e) {
+        previewDiv.innerHTML = `<div class="text-red-400 text-xs text-center py-6">Error al parsear el contenido para previsualización.</div>`;
+      }
+    }
+
     async function exportWorkspace() {
       const zip = new JSZip();
       for (const [path, content] of Object.entries(currentZipFiles)) {
@@ -323,6 +430,117 @@
       a.href = URL.createObjectURL(blob);
       a.download = "zian_addon_modificado.mcpack";
       a.click();
+    }
+
+    // AUDITORÍA AVANZADA COMPLETA
+    async function handleDeepAudit(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const resultsDiv = document.getElementById('auditResults');
+      const logDiv = document.getElementById('auditLog');
+      resultsDiv.classList.remove('hidden');
+      logDiv.innerHTML = '<p class="text-yellow-400">Analizando sintaxis, buscando UUIDs duplicados y auditando archivos .lang...</p>';
+
+      try {
+        const zip = new JSZip();
+        const loadedZip = await zip.loadAsync(file);
+        
+        let logs = [];
+        let definedItemsBlocks = new Set();
+        let jsonFilesData = {};
+        let collectedUUIDs = new Map();
+        let langKeysRegistry = new Map();
+
+        for (const [filename, zipEntry] of Object.entries(loadedZip.files)) {
+          if (zipEntry.dir) continue;
+          const textContent = await zipEntry.async('string');
+
+          if (filename.endsWith('manifest.json')) {
+            try {
+              const manifest = JSON.parse(textContent);
+              if (manifest.header && manifest.header.uuid) {
+                if (collectedUUIDs.has(manifest.header.uuid)) {
+                  logs.push(`<p class="text-red-400">✖ UUID Duplicado en Header: <code class="text-white">${manifest.header.uuid}</code> (En ${filename} y ${collectedUUIDs.get(manifest.header.uuid)})</p>`);
+                } else {
+                  collectedUUIDs.set(manifest.header.uuid, filename);
+                }
+              }
+              if (manifest.modules) {
+                manifest.modules.forEach((mod, idx) => {
+                  if (mod.uuid) {
+                    if (collectedUUIDs.has(mod.uuid)) {
+                      logs.push(`<p class="text-red-400">✖ UUID Duplicado en Módulo [${idx}]: <code class="text-white">${mod.uuid}</code> (${filename})</p>`);
+                    } else {
+                      collectedUUIDs.set(mod.uuid, `${filename} (Módulo ${idx})`);
+                    }
+                  }
+                });
+              }
+            } catch (e) {
+              logs.push(`<p class="text-red-400">✖ Error al parsear manifest en ${filename}</p>`);
+            }
+          }
+
+          if (filename.endsWith('.json')) {
+            try {
+              const parsed = JSON.parse(textContent);
+              jsonFilesData[filename] = parsed;
+              
+              if (parsed['minecraft:item']?.description?.identifier) {
+                definedItemsBlocks.add(parsed['minecraft:item'].description.identifier);
+              }
+              if (parsed['minecraft:block']?.description?.identifier) {
+                definedItemsBlocks.add(parsed['minecraft:block'].description.identifier);
+              }
+              if (parsed['minecraft:entity']?.description?.identifier) {
+                definedItemsBlocks.add(parsed['minecraft:entity'].description.identifier);
+              }
+
+              logs.push(`<p class="text-slate-400">✔ JSON Válido: ${filename}</p>`);
+            } catch (e) {
+              logs.push(`<p class="text-red-400">✖ Error de sintaxis JSON en ${filename}: ${e.message}</p>`);
+            }
+          }
+
+          if (filename.endsWith('.lang')) {
+            const lines = textContent.split('\n');
+            lines.forEach((line, index) => {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed.startsWith('#')) return;
+              
+              if (!trimmed.includes('=')) {
+                logs.push(`<p class="text-red-400">✖ Error en .lang [${filename} L:${index + 1}]: Falta el signo '=' -> <code class="text-white">${trimmed}</code></p>`);
+              } else {
+                const parts = trimmed.split('=');
+                const key = parts[0].trim();
+                if (langKeysRegistry.has(key)) {
+                  logs.push(`<p class="text-amber-400">⚠️ Clave .lang Duplicada: <code class="text-white">${key}</code> (En ${filename} y ${langKeysRegistry.get(key)})</p>`);
+                } else {
+                  langKeysRegistry.set(key, filename);
+                }
+              }
+            });
+            logs.push(`<p class="text-slate-400">✔ Archivo .lang procesado: ${filename}</p>`);
+          }
+        }
+
+        const fullProjectText = Object.values(jsonFilesData).map(obj => JSON.stringify(obj)).join(' ');
+        definedItemsBlocks.forEach(identifier => {
+          const regex = new RegExp(identifier.replace(':', '\\:'), 'g');
+          const matches = fullProjectText.match(regex);
+          if (matches && matches.length <= 1) {
+            logs.push(`<p class="text-amber-400">⚠️ Componente Huérfano: <code class="text-white">${identifier}</code> está definido pero no se usa en recetas o comportamientos.</p>`);
+          }
+        });
+
+        if (logs.length === 0) {
+          logs.push('<p class="text-emerald-400">¡Todo impecable! No se encontraron errores, UUIDs duplicados ni componentes huérfanos.</p>');
+        }
+
+        logDiv.innerHTML = logs.join('');
+      } catch (err) {
+        logDiv.innerHTML = `<p class="text-red-400">Error crítico al auditar el paquete: ${err.message}</p>`;
+      }
     }
 
     // LANG TOOL
@@ -345,34 +563,6 @@
     function copyLangOutput() {
       navigator.clipboard.writeText(document.getElementById('langOutput').value);
       alert('¡Textos .lang copiados!');
-    }
-
-    // AUDITOR Y OTROS
-    async function handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const resultsDiv = document.getElementById('auditResults');
-      const logDiv = document.getElementById('auditLog');
-      resultsDiv.classList.remove('hidden');
-      logDiv.innerHTML = '<p class="text-yellow-400">Analizando...</p>';
-
-      try {
-        const zip = new JSZip();
-        const zipContent = await zip.loadAsync(file);
-        let logs = [];
-        for (const [filename, zipEntry] of Object.entries(zipContent.files)) {
-          if (zipEntry.dir || !filename.endsWith('.json')) continue;
-          try {
-            JSON.parse(await zipEntry.async('string'));
-            logs.push(`<p class="text-slate-400">✔ ${filename}</p>`);
-          } catch (e) {
-            logs.push(`<p class="text-red-400">✖ ${filename}: ${e.message}</p>`);
-          }
-        }
-        logDiv.innerHTML = logs.join('');
-      } catch (err) {
-        logDiv.innerHTML = `<p class="text-red-400">Error: ${err.message}</p>`;
-      }
     }
 
     function generateManifest() {
